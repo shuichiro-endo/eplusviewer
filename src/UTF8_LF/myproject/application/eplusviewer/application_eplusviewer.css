@@ -1,0 +1,84 @@
+
+.bin-table-lineno {
+	-fx-alignment: center-right;
+	-fx-background-color: lightgray;
+	-fx-text-fill: blue; 
+}
+
+.bin-table-space {
+		-fx-alignment: center;
+		-fx-background-color: lightgray;
+}
+
+.bin-table-cell {
+		-fx-alignment: center;
+}
+
+.bin-table-cell-highlight {
+		-fx-alignment: center;
+		-fx-background-color: yellow;
+}
+
+.bin-table-cell-change {
+		-fx-alignment: center;
+		-fx-text-fill: red;
+}
+
+.bin-table-cell-highlight-change {
+		-fx-alignment: center;
+		-fx-text-fill: red;
+		-fx-background-color: yellow;
+}
+
+.console {
+	-fx-text-fill: red; 
+}
+
+.eplusviewer-tree-table-check {
+		-fx-alignment: center;
+		-fx-text-fill: blue; 
+}
+
+.eplusviewer-tree-table-check-hignligt {
+	-fx-alignment: center;
+	-fx-background-color: red ;
+}
+
+.eplusviewer-tree-table-name {
+	-fx-alignment: center-left;
+}
+
+.eplusviewer-tree-table-raw {
+		-fx-alignment: center;
+}
+
+.eplusviewer-tree-table-rva {
+		-fx-alignment: center;
+		-fx-text-fill: red; 
+}
+
+.eplusviewer-tree-table-lma {
+		-fx-alignment: center;
+		-fx-text-fill: green; 
+}
+
+.eplusviewer-tree-table-offset {
+		-fx-alignment: center;
+}
+
+.eplusviewer-tree-table-size {
+		-fx-alignment: center;
+}
+
+.eplusviewer-tree-table-value {
+		-fx-alignment: center-right;
+}
+
+.eplusviewer-tree-table-analysis {
+		-fx-alignment: center-left;
+}
+
+.eplusviewer-tree-table-notes {
+		-fx-alignment: center-left;
+}
+

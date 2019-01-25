@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <center>
+      <TableView id="dump-table" fx:id="idDumpTable" editable="true" focusTraversable="false" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+        <columns>
+          <TableColumn fx:id="idDumpNo" editable="false" maxWidth="50.0" minWidth="50.0" prefWidth="50.0" sortable="false" styleClass="dump-table-no" text="No" />
+          <TableColumn fx:id="idDumpStartRaw" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="150.0" sortable="false" styleClass="dump-table-cell" text="StartRaw" />
+            <TableColumn fx:id="idDumpEndRaw" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="150.0" sortable="false" styleClass="dump-table-cell" text="EndRaw" />
+            <TableColumn fx:id="idDumpSize" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="150.0" sortable="false" styleClass="dump-table-cell" text="Size" />
+            <TableColumn fx:id="idDump00Dump" maxWidth="80.0" minWidth="80.0" sortable="false" styleClass="dump-table-cell" text="00Dump" />
+        </columns>
+      </TableView>
+   </center>
+   <bottom>
+      <ToolBar nodeOrientation="RIGHT_TO_LEFT" prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+        <items>
+            <Button fx:id="idDumpCancel" maxHeight="25.0" maxWidth="60.0" minHeight="25.0" minWidth="60.0" mnemonicParsing="false" onAction="#onDumpCancel" prefHeight="25.0" prefWidth="60.0" text="Cancel" />
+          <Button fx:id="idDumpOk" maxHeight="25.0" maxWidth="60.0" minHeight="25.0" minWidth="60.0" mnemonicParsing="false" onAction="#onDumpOk" prefHeight="25.0" prefWidth="60.0" text="OK" />
+        </items>
+      </ToolBar>
+   </bottom>
+</BorderPane>

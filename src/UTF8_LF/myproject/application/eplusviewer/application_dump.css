@@ -1,0 +1,8 @@
+.dump-table-no {
+	-fx-alignment: center;
+	-fx-text-fill: blue; 
+}
+
+.dump-table-cell {
+	-fx-alignment: center;
+}

@@ -1,0 +1,7 @@
+.disasm-console {
+	-fx-text-fill: blue; 
+}
+
+.disasm-textfield {
+	-fx-alignment: center;
+}

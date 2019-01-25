@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.text.*?>
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1200.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+   <top>
+      <MenuBar BorderPane.alignment="CENTER">
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+                  <MenuItem fx:id="idFileOpen" mnemonicParsing="false" onAction="#onFileOpen" text="FileOpen" />
+                  <MenuItem fx:id="idFileExport" mnemonicParsing="false" onAction="#onFileExport" text="FileExport" />
+              <MenuItem mnemonicParsing="false" onAction="#onClose" text="Close" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem fx:id="idReadMe" mnemonicParsing="false" onAction="#onReadMe" text="ReadMe" />
+                  <MenuItem fx:id="idInputKey" mnemonicParsing="false" onAction="#onInputKey" text="InputKey" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+   </top>
+   <center>
+      <TreeTableView fx:id="idEPlusViewerTreeTableView" editable="true" focusTraversable="false" onMouseClicked="#onMouseClickedEPlusViewerTreeTableView" prefHeight="379.0" prefWidth="1027.0" styleClass="eplusviewer-tree-table" BorderPane.alignment="CENTER">
+        <columns>
+          <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnName" maxWidth="1000.0" minWidth="200.0" prefWidth="300.0" sortable="false" styleClass="eplusviewer-tree-table-name" text="Name" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnCheck" maxWidth="100.0" minWidth="15.0" prefWidth="20.0" sortable="false" styleClass="eplusviewer-tree-table-check" text="*" />
+          <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnRaw" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-raw" text="Raw" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnRVA" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-rva" text="VMA" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnLMA" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-lma" text="LMA" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnOffset" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-offset" text="Offset" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnSize" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-size" text="Size" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnValue" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-value" text="Value" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnAnalysis" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="300.0" sortable="false" styleClass="eplusviewer-tree-table-analysis" text="Analysis" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnNotes" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-notes" text="Notes" />
+        </columns>
+      </TreeTableView>
+   </center>
+   <bottom>
+      <SplitPane fx:id="idSplitPane" dividerPositions="0.78" prefHeight="300.0" prefWidth="878.0" BorderPane.alignment="CENTER">
+        <items>
+            <TableView id="bin-table" fx:id="idBinTable" editable="true" focusTraversable="false" prefHeight="296.0" prefWidth="1200.0">
+              <columns>
+                <TableColumn fx:id="idBinLineNo" editable="false" maxWidth="200.0" minWidth="95.0" prefWidth="95.0" sortable="false" styleClass="bin-table-lineno" text="LineNo" />
+                <TableColumn fx:id="idBin00" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="00" />
+                  <TableColumn fx:id="idBin01" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="01" />
+                  <TableColumn fx:id="idBin02" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="02" />
+                  <TableColumn fx:id="idBin03" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="03" />
+                  <TableColumn fx:id="idBin04" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="04" />
+                  <TableColumn fx:id="idBin05" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="05" />
+                  <TableColumn fx:id="idBin06" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="06" />
+                  <TableColumn fx:id="idBin07" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="07" />
+                  <TableColumn fx:id="idBin08" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="08" />
+                  <TableColumn fx:id="idBin09" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="09" />
+                  <TableColumn fx:id="idBin0A" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0A" />
+                  <TableColumn fx:id="idBin0B" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0B" />
+                  <TableColumn fx:id="idBin0C" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0C" />
+                  <TableColumn fx:id="idBin0D" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0D" />
+                  <TableColumn fx:id="idBin0E" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0E" />
+                  <TableColumn fx:id="idBin0F" maxWidth="30.0" minWidth="30.0" prefWidth="30.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0F" />
+                  <TableColumn fx:id="idBinSpace" editable="false" maxWidth="10.0" prefWidth="10.0" resizable="false" sortable="false" styleClass="bin-table-space" text="space" />
+                  <TableColumn fx:id="idBin0" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="0" />
+                  <TableColumn fx:id="idBin1" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="1" />
+                  <TableColumn fx:id="idBin2" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="2" />
+                  <TableColumn fx:id="idBin3" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="3" />
+                  <TableColumn fx:id="idBin4" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="4" />
+                  <TableColumn fx:id="idBin5" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="5" />
+                  <TableColumn fx:id="idBin6" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="6" />
+                  <TableColumn fx:id="idBin7" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="7" />
+                  <TableColumn fx:id="idBin8" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="8" />
+                  <TableColumn fx:id="idBin9" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="9" />
+                  <TableColumn fx:id="idBinA" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="A" />
+                  <TableColumn fx:id="idBinB" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="B" />
+                  <TableColumn fx:id="idBinC" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="C" />
+                  <TableColumn fx:id="idBinD" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="D" />
+                  <TableColumn fx:id="idBinE" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="E" />
+                  <TableColumn fx:id="idBinF" editable="false" maxWidth="20.0" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" styleClass="bin-table-cell" text="F" />
+              </columns>
+            </TableView>
+            <VBox prefHeight="200.0" prefWidth="100.0">
+               <children>
+                  <ToolBar prefHeight="40.0" prefWidth="200.0">
+                    <items>
+                      <Button fx:id="idRerun" mnemonicParsing="false" onAction="#onRerun" text="Rerun" />
+                        <Button fx:id="idDump" mnemonicParsing="false" onAction="#onDump" text="Dump" />
+                        <Button fx:id="idDisasm" mnemonicParsing="false" onAction="#onDisasm" text="Disasm" />
+                    </items>
+                  </ToolBar>
+                  <TextArea fx:id="idConsole" editable="false" prefHeight="265.0" prefWidth="261.0" promptText="Console" styleClass="console" />
+               </children>
+            </VBox>
+        </items>
+      </SplitPane>
+   </bottom>
+</BorderPane>
