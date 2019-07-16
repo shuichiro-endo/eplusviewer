@@ -14,7 +14,7 @@ Few years ago(2015), I created this tool to learn ELF File.
 
 <font style="color:red;font-size:150%">
 This tool needs huge main memory(About 2GB main memory per 1MB file).<br>
-Do not open over 1MB file.<br>
+Do not open a file over 1MB.<br>
 </font>
 
 
