@@ -31,15 +31,15 @@
    <center>
       <TreeTableView fx:id="idEPlusViewerTreeTableView" editable="true" focusTraversable="false" onMouseClicked="#onMouseClickedEPlusViewerTreeTableView" prefHeight="379.0" prefWidth="1027.0" styleClass="eplusviewer-tree-table" BorderPane.alignment="CENTER">
         <columns>
-          <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnName" maxWidth="1000.0" minWidth="200.0" prefWidth="300.0" sortable="false" styleClass="eplusviewer-tree-table-name" text="Name" />
+          <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnName" maxWidth="1000.0" minWidth="200.0" prefWidth="400.0" sortable="false" styleClass="eplusviewer-tree-table-name" text="Name" />
             <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnCheck" maxWidth="100.0" minWidth="15.0" prefWidth="20.0" sortable="false" styleClass="eplusviewer-tree-table-check" text="*" />
           <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnRaw" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-raw" text="Raw" />
-            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnRVA" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-rva" text="VMA" />
-            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnLMA" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-lma" text="LMA" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnRVA" maxWidth="1.7976931348623157E308" minWidth="50.0" prefWidth="140.0" sortable="false" styleClass="eplusviewer-tree-table-rva" text="VMA" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnLMA" maxWidth="1.7976931348623157E308" minWidth="50.0" prefWidth="140.0" sortable="false" styleClass="eplusviewer-tree-table-lma" text="LMA" />
             <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnOffset" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-offset" text="Offset" />
             <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnSize" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-size" text="Size" />
-            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnValue" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-value" text="Value" />
-            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnAnalysis" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="300.0" sortable="false" styleClass="eplusviewer-tree-table-analysis" text="Analysis" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnValue" maxWidth="1.7976931348623157E308" minWidth="50.0" prefWidth="140.0" sortable="false" styleClass="eplusviewer-tree-table-value" text="Value" />
+            <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnAnalysis" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="160.0" sortable="false" styleClass="eplusviewer-tree-table-analysis" text="Analysis" />
             <TreeTableColumn fx:id="idEPlusViewerTreeTableColumnNotes" maxWidth="1.7976931348623157E308" minWidth="50.0" sortable="false" styleClass="eplusviewer-tree-table-notes" text="Notes" />
         </columns>
       </TreeTableView>
