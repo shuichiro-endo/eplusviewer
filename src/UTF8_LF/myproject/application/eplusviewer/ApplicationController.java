@@ -23,7 +23,6 @@ import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-
 import javafx.fxml.Initializable;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -10366,7 +10365,7 @@ public class ApplicationController implements Initializable {
 					if(index==0){
 						analysis	+= "index="+index+", version=local";
 						name		+= "index="+index+", version=local";
-					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+					}else if(index==1){
 						analysis	+= "index="+index+", version=global";
 						name		+= "index="+index+", version=global";
 					}else if(index>0 && strVersion!=null){
@@ -10397,7 +10396,7 @@ public class ApplicationController implements Initializable {
 					if(index==0){
 						analysis	+= "index="+index+", version=local";
 						name		+= "index="+index+", version=local";
-					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+					}else if(index==1){
 						analysis	+= "index="+index+", version=global";
 						name		+= "index="+index+", version=global";
 					}else if(index>0 && strVersion!=null){
@@ -10535,7 +10534,7 @@ public class ApplicationController implements Initializable {
 					if(index==0){
 						analysis	+= "index="+index+", version=local";
 						name		+= "index="+index+", version=local";
-					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+					}else if(index==1){
 						analysis	+= "index="+index+", version=global";
 						name		+= "index="+index+", version=global";
 					}else if(index>0 && strVersion!=null){
@@ -10566,7 +10565,7 @@ public class ApplicationController implements Initializable {
 					if(index==0){
 						analysis	+= "index="+index+", version=local";
 						name		+= "index="+index+", version=local";
-					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+					}else if(index==1){
 						analysis	+= "index="+index+", version=global";
 						name		+= "index="+index+", version=global";
 					}else if(index>0 && strVersion!=null){
@@ -11560,7 +11559,7 @@ public class ApplicationController implements Initializable {
 
 				//索引、バージョン保存
 				if(count==0 && gnuVersionMap!=null && index>0 && strVersion!=null){
-					if(flags==VER_FLG_BASE){
+					if(index==1){
 						gnuVersionMap.put(index, "global");
 					}else{
 						gnuVersionMap.put(index, strVersion);
@@ -11757,7 +11756,7 @@ public class ApplicationController implements Initializable {
 
 				//索引、バージョン保存
 				if(count==0 && gnuVersionMap!=null && index>0 && strVersion!=null){
-					if(flags==VER_FLG_BASE){
+					if(index==1){
 						gnuVersionMap.put(index, "global");
 					}else{
 						gnuVersionMap.put(index, strVersion);
