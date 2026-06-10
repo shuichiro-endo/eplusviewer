@@ -3,8 +3,6 @@ package myproject.application.eplusviewer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import javax.xml.bind.DatatypeConverter;
-
 public class SectionHeader {
 
 	private String name				= "";
@@ -31,18 +29,41 @@ public class SectionHeader {
 	private long sh_addralign_long	= 0;
 	private long sh_entsize_long	= 0;
 	private int bitFlag				= 0;	//0:32bit 1:64bit
-	
-	
+
+
 	public SectionHeader(String sh_name_str, int bitFlag){
 		this.sh_name_str	= sh_name_str;
 		this.bitFlag		= bitFlag;
 	}
 
-	public boolean addrCheckInt(String strStartAddr, int size){	
+	protected byte[] parseHexBinary(String s){
+		int len = s.length();
+
+		if((len&1) != 0){
+			throw new IllegalArgumentException("Odd length");
+		}
+
+		byte[] out = new byte[len/2];
+
+		for(int i=0; i<len; i+=2){
+			int hi = Character.digit(s.charAt(i), 16);
+			int lo = Character.digit(s.charAt(i + 1), 16);
+
+			if(hi==-1 || lo==-1) {
+				throw new IllegalArgumentException("Invalid hex char");
+			}
+
+			out[i/2] = (byte)((hi<<4)+lo);
+		}
+
+		return out;
+	}
+
+	public boolean addrCheckInt(String strStartAddr, int size){
 		//アドレスを数値に変換
 		long startAddr	= Integer.toUnsignedLong(getStringToInt(strStartAddr, false));
 		long endAddr	= startAddr + size;
-		
+
 		//比較
 		if((startAddr>=Integer.toUnsignedLong(sh_addr_int)) && (endAddr<=Integer.toUnsignedLong(sh_addr_int)+Integer.toUnsignedLong(sh_size_int))){
 			return true;
@@ -50,12 +71,12 @@ public class SectionHeader {
 			return false;
 		}
 	}
-	
-	public boolean addrCheckLong(String strStartAddr, long size){	
+
+	public boolean addrCheckLong(String strStartAddr, long size){
 		//アドレスを数値に変換
 		long startAddr	= getStringToLong(strStartAddr, false);
 		long endAddr	= startAddr + size;
-		
+
 		//比較
 		if((Long.compareUnsigned(startAddr, sh_addr_long)==0 || Long.compareUnsigned(startAddr, sh_addr_long)>0) &&
 		   (Long.compareUnsigned(endAddr, sh_addr_long+sh_size_long)==0 || Long.compareUnsigned(endAddr, sh_addr_long+sh_size_long)<0)){
@@ -64,12 +85,12 @@ public class SectionHeader {
 			return false;
 		}
 	}
-	
-	public boolean offsetCheckInt(String strStartAddr, int size){	
+
+	public boolean offsetCheckInt(String strStartAddr, int size){
 		//アドレスを数値に変換
 		long startAddr	= Integer.toUnsignedLong(getStringToInt(strStartAddr, false));
 		long endAddr	= startAddr + size;
-		
+
 		//比較
 		if((startAddr>=Integer.toUnsignedLong(sh_offset_int)) && (endAddr<=Integer.toUnsignedLong(sh_offset_int)+Integer.toUnsignedLong(sh_size_int))){
 			return true;
@@ -77,12 +98,12 @@ public class SectionHeader {
 			return false;
 		}
 	}
-	
-	public boolean offsetCheckLong(String strStartAddr, long size){	
+
+	public boolean offsetCheckLong(String strStartAddr, long size){
 		//アドレスを数値に変換
 		long startAddr	= getStringToLong(strStartAddr, false);
 		long endAddr		= startAddr + size;
-		
+
 		//比較
 		if((Long.compareUnsigned(startAddr, sh_offset_long)==0 || Long.compareUnsigned(startAddr, sh_offset_long)>0) &&
 		   (Long.compareUnsigned(endAddr, sh_offset_long+sh_size_long)==0 || Long.compareUnsigned(endAddr, sh_offset_long+sh_size_long)<0)){
@@ -91,67 +112,67 @@ public class SectionHeader {
 			return false;
 		}
 	}
-	
+
 	private int getStringToInt(String str, boolean little) {
-		
+
 		int num 			= 0;
 		byte[] bytes	 	= null;
 		ByteBuffer bytesBuf = null;
-		
-		bytes	= DatatypeConverter.parseHexBinary(str);
+
+		bytes	= parseHexBinary(str);
 		bytesBuf = ByteBuffer.wrap(bytes);
-		
+
 		if(little) {
 			bytesBuf.order(ByteOrder.LITTLE_ENDIAN);
 		}
-		
+
 		if(bytes.length == 2) {
 			num	= (int)bytesBuf.getShort(0);
 		}else {
 			num = bytesBuf.getInt(0);
 		}
-		
+
 		return num;
 	}
-	
+
 	private long getStringToLong(String str, boolean little) {
-		
+
 		long num 			= 0;
 		byte[] bytes	 	= null;
 		ByteBuffer bytesBuf = null;
-		
-		bytes	= DatatypeConverter.parseHexBinary(str);
+
+		bytes	= parseHexBinary(str);
 		bytesBuf = ByteBuffer.wrap(bytes);
-		
+
 		if(little) {
 			bytesBuf.order(ByteOrder.LITTLE_ENDIAN);
 		}
-		
+
 		num	= bytesBuf.getLong(0);
-		
+
 		return num;
 	}
-	
 
-	
-	
+
+
+
 	public String getName() {
 		return name;
 	}
-	
+
 	public void setName(String name) {
 		this.name = name;
 	}
-	
+
 	public String getSh_name_str() {
 		return sh_name_str;
 	}
-	
+
 	public void setSh_name_str(String sh_name_str) {
 		this.sh_name_str = sh_name_str;
 	}
 
-	
+
 	public String getSh_type_str() {
 		return sh_type_str;
 	}
@@ -164,7 +185,7 @@ public class SectionHeader {
 			this.sh_type_int	= getStringToInt(sh_type_str, false);
 		}
 	}
-	
+
 	public int getSh_type_int() {
 		return sh_type_int;
 	}
@@ -172,8 +193,8 @@ public class SectionHeader {
 	public void setSh_type_int(int sh_type_int) {
 		this.sh_type_int = sh_type_int;
 	}
-	
-	
+
+
 	public String getSh_flags_str() {
 		return sh_flags_str;
 	}
@@ -189,7 +210,7 @@ public class SectionHeader {
 
 	public void setSh_addr_str(String sh_addr_str) {
 		this.sh_addr_str = sh_addr_str;
-		
+
 		if(bitFlag==0){	//32bit
 			this.sh_addr_int	= getStringToInt(sh_addr_str, false);
 		}else{	//64bit
@@ -204,7 +225,7 @@ public class SectionHeader {
 	public void setSh_addr_int(int sh_addr_int) {
 		this.sh_addr_int = sh_addr_int;
 	}
-	
+
 	public long getSh_addr_long() {
 		return sh_addr_long;
 	}
@@ -212,7 +233,7 @@ public class SectionHeader {
 	public void setSh_addr_long(long sh_addr_long) {
 		this.sh_addr_long = sh_addr_long;
 	}
-	
+
 
 	public String getSh_offset_str() {
 		return sh_offset_str;
@@ -220,12 +241,12 @@ public class SectionHeader {
 
 	public void setSh_offset_str(String sh_offset_str) {
 		this.sh_offset_str = sh_offset_str;
-		
+
 		if(bitFlag==0){	//32bit
 			this.sh_offset_int	= getStringToInt(sh_offset_str, false);
 		}else{	//64bit
 			this.sh_offset_long	= getStringToLong(sh_offset_str, false);
-		}	
+		}
 	}
 
 	public int getSh_offset_int() {
@@ -235,7 +256,7 @@ public class SectionHeader {
 	public void setSh_offset_int(int sh_offset_int) {
 		this.sh_offset_int = sh_offset_int;
 	}
-	
+
 	public long getSh_offset_long() {
 		return sh_offset_long;
 	}
@@ -243,7 +264,7 @@ public class SectionHeader {
 	public void setSh_offset_long(long sh_offset_long) {
 		this.sh_offset_long = sh_offset_long;
 	}
-	
+
 
 	public String getSh_size_str() {
 		return sh_size_str;
@@ -251,7 +272,7 @@ public class SectionHeader {
 
 	public void setSh_size_str(String sh_size_str) {
 		this.sh_size_str = sh_size_str;
-		
+
 		if(bitFlag==0){	//32bit
 			this.sh_size_int	= getStringToInt(sh_size_str, false);
 		}else{	//64bit
@@ -266,7 +287,7 @@ public class SectionHeader {
 	public void setSh_size_int(int sh_size_int) {
 		this.sh_size_int = sh_size_int;
 	}
-	
+
 	public long getSh_size_long() {
 		return sh_size_long;
 	}
@@ -274,8 +295,8 @@ public class SectionHeader {
 	public void setSh_size_long(long sh_size_long) {
 		this.sh_size_long = sh_size_long;
 	}
-	
-	
+
+
 	public String getSh_link_str() {
 		return sh_link_str;
 	}
@@ -284,7 +305,7 @@ public class SectionHeader {
 		this.sh_link_str = sh_link_str;
 		this.sh_link_int = getStringToInt(sh_link_str, false);
 	}
-	
+
 	public int getSh_link_int() {
 		return sh_link_int;
 	}
@@ -292,8 +313,8 @@ public class SectionHeader {
 	public void setSh_link_int(int sh_link_int) {
 		this.sh_link_int = sh_link_int;
 	}
-	
-	
+
+
 	public String getSh_info_str() {
 		return sh_info_str;
 	}
@@ -302,19 +323,19 @@ public class SectionHeader {
 		this.sh_info_str = sh_info_str;
 	}
 
-	
+
 	public String getSh_addralign_str() {
 		return sh_addralign_str;
 	}
 
 	public void setSh_addralign_str(String sh_addralign_str) {
 		this.sh_addralign_str = sh_addralign_str;
-		
+
 		if(bitFlag==0){	//32bit
 			this.sh_addralign_int	= getStringToInt(sh_addralign_str, false);
 		}else{	//64bit
 			this.sh_addralign_long	= getStringToLong(sh_addralign_str, false);
-		}	
+		}
 	}
 
 	public int getSh_addralign_int() {
@@ -324,7 +345,7 @@ public class SectionHeader {
 	public void setSh_addralign_int(int sh_addralign_int) {
 		this.sh_addralign_int = sh_addralign_int;
 	}
-	
+
 	public long getSh_addralign_long() {
 		return sh_addralign_long;
 	}
@@ -340,12 +361,12 @@ public class SectionHeader {
 
 	public void setSh_entsize_str(String sh_entsize_str) {
 		this.sh_entsize_str = sh_entsize_str;
-		
+
 		if(bitFlag==0){	//32bit
 			this.sh_entsize_int		= getStringToInt(sh_entsize_str, false);
 		}else{	//64bit
 			this.sh_entsize_long	= getStringToLong(sh_entsize_str, false);
-		}	
+		}
 	}
 
 	public int getSh_entsize_int() {

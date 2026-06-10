@@ -23,7 +23,6 @@ import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-import javax.xml.bind.DatatypeConverter;
 
 import javafx.fxml.Initializable;
 import javafx.fxml.FXML;
@@ -685,6 +684,20 @@ public class ApplicationController implements Initializable {
 	private final static int STT_FILE				= 0x4;
 	private final static int STT_COMMON				= 0x5;
 	private final static int STT_TLS				= 0x6;
+	private final static int STT_NUM				= 0x7;
+	private final static int STT_LOOS				= 10;
+	private final static int STT_HIOS				= 12;
+	private final static int STT_LOPROC				= 12;
+	private final static int STT_HIPROC				= 12;
+
+	//
+	private final static int STN_UNDEF				= 0;
+
+	//st_other
+	private final static int STV_DEFAULT			= 0;
+	private final static int STV_INTERNAL			= 1;
+	private final static int STV_HIDDEN				= 2;
+	private final static int STV_PROTECTED			= 3;
 
 	//st_shndx
 	private final static int SHN_UNDEF				= 0x0;
@@ -908,6 +921,29 @@ public class ApplicationController implements Initializable {
 		idRerun.setDisable(true);
 		idDump.setDisable(true);
 		idDisasm.setDisable(true);
+	}
+
+	protected byte[] parseHexBinary(String s){
+		int len = s.length();
+
+		if((len&1) != 0){
+			throw new IllegalArgumentException("Odd length");
+		}
+
+		byte[] out = new byte[len/2];
+
+		for(int i=0; i<len; i+=2){
+			int hi = Character.digit(s.charAt(i), 16);
+			int lo = Character.digit(s.charAt(i + 1), 16);
+
+			if(hi==-1 || lo==-1) {
+				throw new IllegalArgumentException("Invalid hex char");
+			}
+
+			out[i/2] = (byte)((hi<<4)+lo);
+		}
+
+		return out;
 	}
 
 	@FXML
@@ -1629,7 +1665,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin00(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -1705,7 +1741,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin01(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -1781,7 +1817,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin02(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -1857,7 +1893,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin03(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -1933,7 +1969,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin04(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2009,7 +2045,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin05(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2085,7 +2121,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin06(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2161,7 +2197,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin07(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2237,7 +2273,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin08(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2313,7 +2349,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin09(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2389,7 +2425,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0A(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2465,7 +2501,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0B(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2541,7 +2577,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0C(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2617,7 +2653,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0D(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2693,7 +2729,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0E(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -2769,7 +2805,7 @@ public class ApplicationController implements Initializable {
 						((BinTableRecord) t.getTableView().getItems().get(t.getTablePosition().getRow())).setBin0F(newData);
 
 						try{
-							byte[] data	= DatatypeConverter.parseHexBinary(newData);
+							byte[] data	= parseHexBinary(newData);
 							int rb		= (int)data[0];
 							ByteBuffer buffer	= ByteBuffer.allocate(Integer.SIZE/Byte.BYTES);
 							//String newCharData = new String(buffer.putInt(rb&0xff).array(), "US-ASCII");
@@ -5528,8 +5564,8 @@ public class ApplicationController implements Initializable {
 				case DT_PLTGOT		:
 					analysis	+= "DT_PLTGOT(3)";
 					break;
-				case DT_X86_64_NUM		:
-					analysis	+= "DT_X86_64_NUM(4) or DT_HASH";
+				case DT_HASH		:
+					analysis	+= "DT_HASH(4)";
 					break;
 				case DT_STRTAB		:
 					analysis	+= "DT_STRTAB(5)";
@@ -6128,9 +6164,9 @@ public class ApplicationController implements Initializable {
 			TreeItem<EPlusViewerTreeTableRecord> ELF_DYNAMIC_ENTRY_Item							= null;
 			TreeItem<EPlusViewerTreeTableRecord> SYMTAB_Item1 									= null;
 
+			//1回目に優先して作成するものを作成
 			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
 			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
-
 			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
 
 				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
@@ -6140,6 +6176,136 @@ public class ApplicationController implements Initializable {
 
 				String strVaddr			= null;
 				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strVerDefVaddr	= null;
+				String strVerDefNum		= null;
+
+				String strVerNeedVaddr	= null;
+				String strVerNeedNum	= null;
+
+				String strX8664PltVaddr = null;
+				String strX8664PltSize  = null;
+				String strX8664PltEntSize = null;
+
+				switch(getStringToInt(item0.getValue().getValue(), false)){
+				case DT_NEEDED:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_SONAME:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_RPATH:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_RUNPATH:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_INIT:
+					break;
+				case DT_FINI:
+					break;
+				case DT_INIT_ARRAY:
+					strVaddr	= map.get(String.format("%08X", DT_INIT_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_INIT_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_FINI_ARRAY:
+					strVaddr	= map.get(String.format("%08X", DT_FINI_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_FINI_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_STRTAB:
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
+					break;
+				case DT_SYMTAB:
+					strSymVaddr		= map.get(String.format("%08X", DT_SYMTAB).toUpperCase());
+					strSymEntSize	= map.get(String.format("%08X", DT_SYMENT).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
+					SYMTAB_Item1	= item1;
+					break;
+				case DT_VERDEF:
+					strVerDefVaddr	= map.get(String.format("%08X", DT_VERDEF).toUpperCase());
+					strVerDefNum	= map.get(String.format("%08X", DT_VERDEFNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_VERNEED:
+					strVerNeedVaddr	= map.get(String.format("%08X", DT_VERNEED).toUpperCase());
+					strVerNeedNum	= map.get(String.format("%08X", DT_VERNEEDNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_X86_64_PLT:
+					strX8664PltVaddr   	= map.get(String.format("%08X", DT_X86_64_PLT).toUpperCase());
+					strX8664PltSize		= map.get(String.format("%08X", DT_X86_64_PLTSZ).toUpperCase());
+					strX8664PltEntSize	= map.get(String.format("%08X", DT_X86_64_PLTENT).toUpperCase());
+					makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//2回目にDT_VERSYMを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVerSymVaddr	= null;
+
+				switch(getStringToInt(item0.getValue().getValue(), false)){
+				case DT_VERSYM:
+					strVerSymVaddr	= map.get(String.format("%08X", DT_VERSYM).toUpperCase());
+					makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//3回目に残りを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
 
 				String strStrVaddr		= null;
 				String strStrDataSize	= null;
@@ -6159,162 +6325,73 @@ public class ApplicationController implements Initializable {
 				String strPltRelSize	= null;
 				String strPltRel		= null;
 
-				String rtnStrVal		= null;
-
 				String strRelrVaddr		= null;
 				String strRelrDataSize	= null;
 				String strRelrEntSize	= null;
 
-				String strVerSymVaddr	= null;
-
-				String strVerDefVaddr	= null;
-				String strVerDefNum		= null;
-
-				String strVerNeedVaddr	= null;
-				String strVerNeedNum	= null;
-
-				String strX8664PltVaddr = null;
-				String strX8664PltSize  = null;
-				String strX8664PltEntSize = null;
-
 				switch(getStringToInt(item0.getValue().getValue(), false)){
-					case DT_NEEDED:
-						strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						//ストリングテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
-						break;
-					case DT_SONAME:
-						strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						//ストリングシンボルテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
-						break;
-					case DT_RPATH:
-						strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						//ストリングシンボルテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
-						break;
-					case DT_RUNPATH:
-						strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						//ストリングシンボルテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
-						break;
-					case DT_INIT:
-						break;
-					case DT_FINI:
-						break;
-					case DT_INIT_ARRAY:
-						strVaddr	= map.get(String.format("%08X", DT_INIT_ARRAY).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_INIT_ARRAYSZ).toUpperCase());
-						makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
-						break;
-					case DT_FINI_ARRAY:
-						strVaddr	= map.get(String.format("%08X", DT_FINI_ARRAY).toUpperCase());
-						strDataSize	= map.get(String.format("%08X", DT_FINI_ARRAYSZ).toUpperCase());
-						makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
-						break;
-					case DT_STRTAB:
-						strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
-						break;
-					case DT_SYMTAB:
-						strSymVaddr		= map.get(String.format("%08X", DT_SYMTAB).toUpperCase());
-						strSymEntSize	= map.get(String.format("%08X", DT_SYMENT).toUpperCase());
-						strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
-						SYMTAB_Item1	= item1;
-						break;
-					case DT_PLTGOT:
-						strVaddr	= map.get(String.format("%08X", DT_PLTGOT).toUpperCase());
-						//.rel.gotサイズ取得
-						int relgotSize	= ELF32_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
-						strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
-						strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
-						if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
-							relgotSize += getStringToInt(strPltRelSize, false)/ELF32_RELA_SIZE * ELF32_ADDR_SIZE;
-						}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
-							relgotSize += getStringToInt(strPltRelSize, false)/ELF32_REL_SIZE * ELF32_ADDR_SIZE;
-						}
-						//System.out.println("relgotSize="+relgotSize);
-						makeDynamicEntryAddrArray(item1, strVaddr, String.format("%08X", relgotSize).toUpperCase());
-						break;
-					case DT_RELA:
-						strRelaVaddr   	= map.get(String.format("%08X", DT_RELA).toUpperCase());
-						strRelaDataSize	= map.get(String.format("%08X", DT_RELASZ).toUpperCase());
+				case DT_PLTGOT:
+					strVaddr	= map.get(String.format("%08X", DT_PLTGOT).toUpperCase());
+					//.rel.gotサイズ取得
+					int relgotSize	= ELF32_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
+					strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
+					if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						relgotSize += getStringToInt(strPltRelSize, false)/ELF32_RELA_SIZE * ELF32_ADDR_SIZE;
+					}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
+						relgotSize += getStringToInt(strPltRelSize, false)/ELF32_REL_SIZE * ELF32_ADDR_SIZE;
+					}
+					//System.out.println("relgotSize="+relgotSize);
+					makeDynamicEntryAddrArray(item1, strVaddr, String.format("%08X", relgotSize).toUpperCase());
+					break;
+				case DT_RELA:
+					strRelaVaddr   	= map.get(String.format("%08X", DT_RELA).toUpperCase());
+					strRelaDataSize	= map.get(String.format("%08X", DT_RELASZ).toUpperCase());
+					strRelaEntSize	= map.get(String.format("%08X", DT_RELAENT).toUpperCase());
+					if(strRelaEntSize==null){
+						strRelaEntSize	= String.format("%08X", ELF32_RELA_SIZE).toUpperCase();
+					}
+					makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
+					break;
+				case DT_REL:
+					strRelVaddr   	= map.get(String.format("%08X", DT_REL).toUpperCase());
+					strRelDataSize	= map.get(String.format("%08X", DT_RELSZ).toUpperCase());
+					strRelEntSize	= map.get(String.format("%08X", DT_RELENT).toUpperCase());
+					if(strRelEntSize==null){
+						strRelEntSize	= String.format("%08X", ELF32_REL_SIZE).toUpperCase();
+					}
+					makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
+					break;
+				case DT_JMPREL:
+					strJmpRelVaddr  = map.get(String.format("%08X", DT_JMPREL).toUpperCase());
+					strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
+
+					if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
 						strRelaEntSize	= map.get(String.format("%08X", DT_RELAENT).toUpperCase());
 						if(strRelaEntSize==null){
 							strRelaEntSize	= String.format("%08X", ELF32_RELA_SIZE).toUpperCase();
 						}
-						makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
-						break;
-					case DT_REL:
-						strRelVaddr   	= map.get(String.format("%08X", DT_REL).toUpperCase());
-						strRelDataSize	= map.get(String.format("%08X", DT_RELSZ).toUpperCase());
+						makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
+					}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
 						strRelEntSize	= map.get(String.format("%08X", DT_RELENT).toUpperCase());
 						if(strRelEntSize==null){
 							strRelEntSize	= String.format("%08X", ELF32_REL_SIZE).toUpperCase();
 						}
-						makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
-						break;
-					case DT_JMPREL:
-						strJmpRelVaddr  = map.get(String.format("%08X", DT_JMPREL).toUpperCase());
-						strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
-						strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
-
-						if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
-							strRelaEntSize	= map.get(String.format("%08X", DT_RELAENT).toUpperCase());
-							if(strRelaEntSize==null){
-								strRelaEntSize	= String.format("%08X", ELF32_RELA_SIZE).toUpperCase();
-							}
-							makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
-						}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
-							strRelEntSize	= map.get(String.format("%08X", DT_RELENT).toUpperCase());
-							if(strRelEntSize==null){
-								strRelEntSize	= String.format("%08X", ELF32_REL_SIZE).toUpperCase();
-							}
-							makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
-						}
-						break;
-					case DT_RELR:
-						strRelrVaddr   	= map.get(String.format("%08X", DT_RELR).toUpperCase());
-						strRelrDataSize	= map.get(String.format("%08X", DT_RELRSZ).toUpperCase());
-						strRelrEntSize	= map.get(String.format("%08X", DT_RELRENT).toUpperCase());
-						if(strRelrEntSize==null){
-							strRelrEntSize	= String.format("%08X", ELF32_RELR_SIZE).toUpperCase();
-						}
-						makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
-						break;
-					case DT_VERSYM:
-						strVerSymVaddr	= map.get(String.format("%08X", DT_VERSYM).toUpperCase());
-						makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
-						break;
-					case DT_VERDEF:
-						strVerDefVaddr	= map.get(String.format("%08X", DT_VERDEF).toUpperCase());
-						strVerDefNum	= map.get(String.format("%08X", DT_VERDEFNUM).toUpperCase());
-						strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
-						break;
-					case DT_VERNEED:
-						strVerNeedVaddr	= map.get(String.format("%08X", DT_VERNEED).toUpperCase());
-						strVerNeedNum	= map.get(String.format("%08X", DT_VERNEEDNUM).toUpperCase());
-						strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
-						makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
-						break;
-					case DT_X86_64_PLT:
-						strX8664PltVaddr   	= map.get(String.format("%08X", DT_X86_64_PLT).toUpperCase());
-						strX8664PltSize		= map.get(String.format("%08X", DT_X86_64_PLTSZ).toUpperCase());
-						strX8664PltEntSize	= map.get(String.format("%08X", DT_X86_64_PLTENT).toUpperCase());
-						makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
-						break;
-					default:
-						break;
+						makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
+					}
+					break;
+				case DT_RELR:
+					strRelrVaddr   	= map.get(String.format("%08X", DT_RELR).toUpperCase());
+					strRelrDataSize	= map.get(String.format("%08X", DT_RELRSZ).toUpperCase());
+					strRelrEntSize	= map.get(String.format("%08X", DT_RELRENT).toUpperCase());
+					if(strRelrEntSize==null){
+						strRelrEntSize	= String.format("%08X", ELF32_RELR_SIZE).toUpperCase();
+					}
+					makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
+					break;
+				default:
+					break;
 				}
 			}
 
@@ -7035,9 +7112,9 @@ public class ApplicationController implements Initializable {
 			TreeItem<EPlusViewerTreeTableRecord> ELF_DYNAMIC_ENTRY_Item							= null;
 			TreeItem<EPlusViewerTreeTableRecord> SYMTAB_Item1 									= null;
 
+			//1回目に優先して作成するものを作成
 			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
 			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
-
 			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
 
 				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
@@ -7047,6 +7124,137 @@ public class ApplicationController implements Initializable {
 
 				String strVaddr			= null;
 				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strVerDefVaddr	= null;
+				String strVerDefNum		= null;
+
+				String strVerNeedVaddr	= null;
+				String strVerNeedNum	= null;
+
+				String strX8664PltVaddr = null;
+				String strX8664PltSize  = null;
+				String strX8664PltEntSize = null;
+
+				switch((int)getStringToLong(item0.getValue().getValue(), false)){
+				case DT_NEEDED:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_SONAME:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_RPATH:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_RUNPATH:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_INIT:
+					break;
+				case DT_FINI:
+					break;
+				case DT_INIT_ARRAY:
+					strVaddr	= map.get(String.format("%016X", DT_INIT_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_INIT_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_FINI_ARRAY:
+					strVaddr	= map.get(String.format("%016X", DT_FINI_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_FINI_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_STRTAB:
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
+					break;
+				case DT_SYMTAB:
+					strSymVaddr		= map.get(String.format("%016X", DT_SYMTAB).toUpperCase());
+					strSymEntSize	= map.get(String.format("%016X", DT_SYMENT).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
+					SYMTAB_Item1	= item1;
+					break;
+				case DT_VERDEF:
+					strVerDefVaddr	= map.get(String.format("%016X", DT_VERDEF).toUpperCase());
+					strVerDefNum	= map.get(String.format("%016X", DT_VERDEFNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_VERNEED:
+					strVerNeedVaddr	= map.get(String.format("%016X", DT_VERNEED).toUpperCase());
+					strVerNeedNum	= map.get(String.format("%016X", DT_VERNEEDNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_X86_64_PLT:
+					strX8664PltVaddr   	= map.get(String.format("%016X", DT_X86_64_PLT).toUpperCase());
+					strX8664PltSize		= map.get(String.format("%016X", DT_X86_64_PLTSZ).toUpperCase());
+					strX8664PltEntSize	= map.get(String.format("%016X", DT_X86_64_PLTENT).toUpperCase());
+					makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//2回目にDT_VERSYMを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVerSymVaddr	= null;
+
+				switch((int)getStringToLong(item0.getValue().getValue(), false)){
+				case DT_VERSYM:
+					strVerSymVaddr	= map.get(String.format("%016X", DT_VERSYM).toUpperCase());
+					makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
+					break;
+				default:
+					break;
+				}
+
+			}
+
+			//3回目に残りを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
 
 				String strStrVaddr		= null;
 				String strStrDataSize	= null;
@@ -7066,162 +7274,73 @@ public class ApplicationController implements Initializable {
 				String strPltRelSize	= null;
 				String strPltRel		= null;
 
-				String rtnStrVal		= null;
-
 				String strRelrVaddr		= null;
 				String strRelrDataSize	= null;
 				String strRelrEntSize	= null;
 
-				String strVerSymVaddr	= null;
-
-				String strVerDefVaddr	= null;
-				String strVerDefNum		= null;
-
-				String strVerNeedVaddr	= null;
-				String strVerNeedNum	= null;
-
-				String strX8664PltVaddr = null;
-				String strX8664PltSize  = null;
-				String strX8664PltEntSize = null;
-
 				switch((int)getStringToLong(item0.getValue().getValue(), false)){
-					case DT_NEEDED:
-						strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						//ストリングテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
-						break;
-					case DT_SONAME:
-						strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						//ストリングテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
-						break;
-					case DT_RPATH:
-						strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						//ストリングテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
-						break;
-					case DT_RUNPATH:
-						strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						//ストリングテーブルからシンボル名取得
-						rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
-						break;
-					case DT_INIT:
-						break;
-					case DT_FINI:
-						break;
-					case DT_INIT_ARRAY:
-						strVaddr	= map.get(String.format("%016X", DT_INIT_ARRAY).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_INIT_ARRAYSZ).toUpperCase());
-						makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
-						break;
-					case DT_FINI_ARRAY:
-						strVaddr	= map.get(String.format("%016X", DT_FINI_ARRAY).toUpperCase());
-						strDataSize	= map.get(String.format("%016X", DT_FINI_ARRAYSZ).toUpperCase());
-						makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
-						break;
-					case DT_STRTAB:
-						strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
-						break;
-					case DT_SYMTAB:
-						strSymVaddr		= map.get(String.format("%016X", DT_SYMTAB).toUpperCase());
-						strSymEntSize	= map.get(String.format("%016X", DT_SYMENT).toUpperCase());
-						strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
-						SYMTAB_Item1	= item1;
-						break;
-					case DT_PLTGOT:
-						strVaddr	= map.get(String.format("%016X", DT_PLTGOT).toUpperCase());
-						//.rel.gotサイズ取得
-						long relgotSize	= ELF64_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
-						strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
-						strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
-						if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
-							relgotSize += getStringToLong(strPltRelSize, false)/ELF64_RELA_SIZE * ELF64_ADDR_SIZE;
-						}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
-							relgotSize += getStringToLong(strPltRelSize, false)/ELF64_REL_SIZE * ELF64_ADDR_SIZE;
-						}
-						//System.out.println("relgotSize="+relgotSize);
-						makeDynamicEntryAddrArray(item1, strVaddr, String.format("%016X", relgotSize).toUpperCase());
-						break;
-					case DT_RELA:
-						strRelaVaddr   	= map.get(String.format("%016X", DT_RELA).toUpperCase());
-						strRelaDataSize	= map.get(String.format("%016X", DT_RELASZ).toUpperCase());
+				case DT_PLTGOT:
+					strVaddr	= map.get(String.format("%016X", DT_PLTGOT).toUpperCase());
+					//.rel.gotサイズ取得
+					long relgotSize	= ELF64_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
+					strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
+					if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						relgotSize += getStringToLong(strPltRelSize, false)/ELF64_RELA_SIZE * ELF64_ADDR_SIZE;
+					}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
+						relgotSize += getStringToLong(strPltRelSize, false)/ELF64_REL_SIZE * ELF64_ADDR_SIZE;
+					}
+					//System.out.println("relgotSize="+relgotSize);
+					makeDynamicEntryAddrArray(item1, strVaddr, String.format("%016X", relgotSize).toUpperCase());
+					break;
+				case DT_RELA:
+					strRelaVaddr   	= map.get(String.format("%016X", DT_RELA).toUpperCase());
+					strRelaDataSize	= map.get(String.format("%016X", DT_RELASZ).toUpperCase());
+					strRelaEntSize	= map.get(String.format("%016X", DT_RELAENT).toUpperCase());
+					if(strRelaEntSize==null){
+						strRelaEntSize	= String.format("%016X", ELF64_RELA_SIZE).toUpperCase();
+					}
+					makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
+					break;
+				case DT_REL:
+					strRelVaddr   	= map.get(String.format("%016X", DT_REL).toUpperCase());
+					strRelDataSize	= map.get(String.format("%016X", DT_RELSZ).toUpperCase());
+					strRelEntSize	= map.get(String.format("%016X", DT_RELENT).toUpperCase());
+					if(strRelEntSize==null){
+						strRelEntSize	= String.format("%016X", ELF64_REL_SIZE).toUpperCase();
+					}
+					makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
+					break;
+				case DT_JMPREL:
+					strJmpRelVaddr  = map.get(String.format("%016X", DT_JMPREL).toUpperCase());
+					strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
+
+					if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
 						strRelaEntSize	= map.get(String.format("%016X", DT_RELAENT).toUpperCase());
 						if(strRelaEntSize==null){
 							strRelaEntSize	= String.format("%016X", ELF64_RELA_SIZE).toUpperCase();
 						}
-						makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
-						break;
-					case DT_REL:
-						strRelVaddr   	= map.get(String.format("%016X", DT_REL).toUpperCase());
-						strRelDataSize	= map.get(String.format("%016X", DT_RELSZ).toUpperCase());
+						makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
+					}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
 						strRelEntSize	= map.get(String.format("%016X", DT_RELENT).toUpperCase());
 						if(strRelEntSize==null){
 							strRelEntSize	= String.format("%016X", ELF64_REL_SIZE).toUpperCase();
 						}
-						makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
-						break;
-					case DT_JMPREL:
-						strJmpRelVaddr  = map.get(String.format("%016X", DT_JMPREL).toUpperCase());
-						strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
-						strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
-
-						if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
-							strRelaEntSize	= map.get(String.format("%016X", DT_RELAENT).toUpperCase());
-							if(strRelaEntSize==null){
-								strRelaEntSize	= String.format("%016X", ELF64_RELA_SIZE).toUpperCase();
-							}
-							makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
-						}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
-							strRelEntSize	= map.get(String.format("%016X", DT_RELENT).toUpperCase());
-							if(strRelEntSize==null){
-								strRelEntSize	= String.format("%016X", ELF64_REL_SIZE).toUpperCase();
-							}
-							makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
-						}
-						break;
-					case DT_RELR:
-						strRelrVaddr   	= map.get(String.format("%016X", DT_RELR).toUpperCase());
-						strRelrDataSize	= map.get(String.format("%016X", DT_RELRSZ).toUpperCase());
-						strRelrEntSize	= map.get(String.format("%016X", DT_RELRENT).toUpperCase());
-						if(strRelrEntSize==null){
-							strRelrEntSize	= String.format("%016X", ELF64_RELR_SIZE).toUpperCase();
-						}
-						makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
-						break;
-					case DT_VERSYM:
-						strVerSymVaddr	= map.get(String.format("%016X", DT_VERSYM).toUpperCase());
-						makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
-						break;
-					case DT_VERDEF:
-						strVerDefVaddr	= map.get(String.format("%016X", DT_VERDEF).toUpperCase());
-						strVerDefNum	= map.get(String.format("%016X", DT_VERDEFNUM).toUpperCase());
-						strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
-						break;
-					case DT_VERNEED:
-						strVerNeedVaddr	= map.get(String.format("%016X", DT_VERNEED).toUpperCase());
-						strVerNeedNum	= map.get(String.format("%016X", DT_VERNEEDNUM).toUpperCase());
-						strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
-						strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
-						makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
-						break;
-					case DT_X86_64_PLT:
-						strX8664PltVaddr   	= map.get(String.format("%016X", DT_X86_64_PLT).toUpperCase());
-						strX8664PltSize		= map.get(String.format("%016X", DT_X86_64_PLTSZ).toUpperCase());
-						strX8664PltEntSize	= map.get(String.format("%016X", DT_X86_64_PLTENT).toUpperCase());
-						makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
-						break;
-					default:
-						break;
+						makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
+					}
+					break;
+				case DT_RELR:
+					strRelrVaddr   	= map.get(String.format("%016X", DT_RELR).toUpperCase());
+					strRelrDataSize	= map.get(String.format("%016X", DT_RELRSZ).toUpperCase());
+					strRelrEntSize	= map.get(String.format("%016X", DT_RELRENT).toUpperCase());
+					if(strRelrEntSize==null){
+						strRelrEntSize	= String.format("%016X", ELF64_RELR_SIZE).toUpperCase();
+					}
+					makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
+					break;
+				default:
+					break;
 				}
 			}
 		}
@@ -7728,6 +7847,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 			long vl			= 0;
 
@@ -7949,7 +8069,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -7976,6 +8096,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -8019,7 +8141,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -8157,6 +8289,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 			long vl			= 0;
 
@@ -8291,7 +8424,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -8318,6 +8451,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -8361,7 +8496,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -10218,18 +10363,24 @@ public class ApplicationController implements Initializable {
 						strVersion	= gnuVersionMap.get(index);
 					}
 
-					if(index>0 && strVersion!=null){
+					if(index==0){
+						analysis	+= "index="+index+", version=local";
+						name		+= "index="+index+", version=local";
+					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+						analysis	+= "index="+index+", version=global";
+						name		+= "index="+index+", version=global";
+					}else if(index>0 && strVersion!=null){
 						analysis	+= "index="+index+", version="+strVersion+", VERSYM_HIDDEN(0x8000)";
 						name		+= ":index="+index+", version="+strVersion+", VERSYM_HIDDEN(0x8000)";
 
-						TreeItem<EPlusViewerTreeTableRecord> symbol = SYMTAB_Item.getChildren().get(count);
+						TreeItem<EPlusViewerTreeTableRecord> symbol		= SYMTAB_Item.getChildren().get(count);
 						if(symbol!=null){
-							EPlusViewerTreeTableRecord record	= symbol.getValue();
-							if(record!=null){
-								if(!record.getName().contains("GLIBC_")){
-									record.setName(record.getName()+"@"+strVersion+" ("+index+", hidden)");
+							EPlusViewerTreeTableRecord symbolRecord		= symbol.getValue();
+							if(symbolRecord!=null){
+								if(!symbolRecord.getName().contains("GLIBC_")){
+									symbolRecord.setName(symbolRecord.getName()+"@"+strVersion+" ("+index+", hidden)");
 								}else{
-									record.setName(record.getName()+" ("+index+", hidden)");
+									symbolRecord.setName(symbolRecord.getName()+" ("+index+", hidden)");
 								}
 							}
 						}
@@ -10243,18 +10394,34 @@ public class ApplicationController implements Initializable {
 						strVersion	= gnuVersionMap.get(index);
 					}
 
-					if(index>0 && strVersion!=null){
+					if(index==0){
+						analysis	+= "index="+index+", version=local";
+						name		+= "index="+index+", version=local";
+					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+						analysis	+= "index="+index+", version=global";
+						name		+= "index="+index+", version=global";
+					}else if(index>0 && strVersion!=null){
 						analysis	+= "index="+index+", version="+strVersion;
 						name		+= ":index="+index+", version="+strVersion;
 
-						TreeItem<EPlusViewerTreeTableRecord> symbol = SYMTAB_Item.getChildren().get(count);
-						if(symbol!=null){
-							EPlusViewerTreeTableRecord record	= symbol.getValue();
-							if(record!=null){
-								if(!record.getName().contains("GLIBC_")){
-									record.setName(record.getName()+"@@"+strVersion+" ("+index+")");
+						TreeItem<EPlusViewerTreeTableRecord> symbol		= SYMTAB_Item.getChildren().get(count);
+						TreeItem<EPlusViewerTreeTableRecord> st_shndx	= symbol.getChildren().get(5);
+
+						if(symbol!=null && st_shndx!=null){
+							EPlusViewerTreeTableRecord symbolRecord		= symbol.getValue();
+							EPlusViewerTreeTableRecord st_shndxRecord	= st_shndx.getValue();
+							if(symbolRecord!=null && st_shndxRecord != null){
+								if(!symbolRecord.getName().contains("GLIBC_")){
+									String st_shndxValue	= st_shndxRecord.getValue();
+									if(st_shndxValue!=null){
+										if(st_shndxValue.equals("0000")){	//SHN_UNDEF(0x0)の場合は、non default?
+											symbolRecord.setName(symbolRecord.getName()+"@"+strVersion+" ("+index+")");
+										}else{
+											symbolRecord.setName(symbolRecord.getName()+"@@"+strVersion+" ("+index+")");
+										}
+									}
 								}else{
-									record.setName(record.getName()+" ("+index+")");
+									symbolRecord.setName(symbolRecord.getName()+" ("+index+")");
 								}
 							}
 						}
@@ -10365,18 +10532,24 @@ public class ApplicationController implements Initializable {
 						strVersion	= gnuVersionMap.get(index);
 					}
 
-					if(index>0 && strVersion!=null){
+					if(index==0){
+						analysis	+= "index="+index+", version=local";
+						name		+= "index="+index+", version=local";
+					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+						analysis	+= "index="+index+", version=global";
+						name		+= "index="+index+", version=global";
+					}else if(index>0 && strVersion!=null){
 						analysis	+= "index="+index+", version="+strVersion+", VERSYM_HIDDEN(0x8000)";
 						name		+= ":index="+index+", version="+strVersion+", VERSYM_HIDDEN(0x8000)";
 
 						TreeItem<EPlusViewerTreeTableRecord> symbol = SYMTAB_Item.getChildren().get(count);
 						if(symbol!=null){
-							EPlusViewerTreeTableRecord record	= symbol.getValue();
-							if(record!=null){
-								if(!record.getName().contains("GLIBC_")){
-									record.setName(record.getName()+"@"+strVersion+" ("+index+", hidden)");
+							EPlusViewerTreeTableRecord symbolRecord	= symbol.getValue();
+							if(symbolRecord!=null){
+								if(!symbolRecord.getName().contains("GLIBC_")){
+									symbolRecord.setName(symbolRecord.getName()+"@"+strVersion+" ("+index+", hidden)");
 								}else{
-									record.setName(record.getName()+" ("+index+", hidden)");
+									symbolRecord.setName(symbolRecord.getName()+" ("+index+", hidden)");
 								}
 							}
 						}
@@ -10390,18 +10563,33 @@ public class ApplicationController implements Initializable {
 						strVersion	= gnuVersionMap.get(index);
 					}
 
-					if(index>0 && strVersion!=null){
+					if(index==0){
+						analysis	+= "index="+index+", version=local";
+						name		+= "index="+index+", version=local";
+					}else if(index>0 && strVersion!=null && strVersion.equals("global")){
+						analysis	+= "index="+index+", version=global";
+						name		+= "index="+index+", version=global";
+					}else if(index>0 && strVersion!=null){
 						analysis	+= "index="+index+", version="+strVersion;
 						name		+= ":index="+index+", version="+strVersion;
 
-						TreeItem<EPlusViewerTreeTableRecord> symbol = SYMTAB_Item.getChildren().get(count);
-						if(symbol!=null){
-							EPlusViewerTreeTableRecord record	= symbol.getValue();
-							if(record!=null){
-								if(!record.getName().contains("GLIBC_")){
-									record.setName(record.getName()+"@@"+strVersion+" ("+index+")");
+						TreeItem<EPlusViewerTreeTableRecord> symbol		= SYMTAB_Item.getChildren().get(count);
+						TreeItem<EPlusViewerTreeTableRecord> st_shndx	= symbol.getChildren().get(3);
+						if(symbol!=null && st_shndx!=null){
+							EPlusViewerTreeTableRecord symbolRecord	= symbol.getValue();
+							EPlusViewerTreeTableRecord st_shndxRecord	= st_shndx.getValue();
+							if(symbolRecord!=null && st_shndxRecord != null){
+								if(!symbolRecord.getName().contains("GLIBC_")){
+									String st_shndxValue	= st_shndxRecord.getValue();
+									if(st_shndxValue!=null){
+										if(st_shndxValue.equals("0000")){	//SHN_UNDEF(0x0)の場合は、non default?
+											symbolRecord.setName(symbolRecord.getName()+"@"+strVersion+" ("+index+")");
+										}else{
+											symbolRecord.setName(symbolRecord.getName()+"@@"+strVersion+" ("+index+")");
+										}
+									}
 								}else{
-									record.setName(record.getName()+" ("+index+")");
+									symbolRecord.setName(symbolRecord.getName()+" ("+index+")");
 								}
 							}
 						}
@@ -10470,6 +10658,7 @@ public class ApplicationController implements Initializable {
 			int count		= 0;
 
 			//索引、バージョン保存用
+			int flags		= 0;
 			Integer index	= -1;
 
 			//VdauxArrayアドレス、エントリカウント
@@ -10594,6 +10783,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				v			= getStringToInt(value, false);
+				flags		= v;
 				analysis	= "";
 				if(v==VER_FLG_BASE){
 					analysis	+= "VER_FLG_BASE(0x1)";
@@ -10824,7 +11014,7 @@ public class ApplicationController implements Initializable {
 				VERDEF_TABLE_Item.getChildren().add(vd_next_Item);
 
 				//参照先のVerdauxArrayを作成
-				makeVerdauxArray(vd_aux_Item, vdauxAddr, vdauxVaddr, vdauxEntryCount, index, strStrVaddr, strStrDataSize);
+				makeVerdauxArray(vd_aux_Item, vdauxAddr, vdauxVaddr, vdauxEntryCount, index, flags, strStrVaddr, strStrDataSize);
 
 				count++;
 			}
@@ -10864,6 +11054,7 @@ public class ApplicationController implements Initializable {
 			int count		= 0;
 
 			//索引、バージョン保存用
+			int flags		= 0;
 			Integer index	= -1;
 
 			//VdauxArrayアドレス、エントリカウント
@@ -10988,6 +11179,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				v			= getStringToInt(value, false);
+				flags		= v;
 				analysis	= "";
 				if(v==VER_FLG_BASE){
 					analysis	+= "VER_FLG_BASE(0x1)";
@@ -11218,14 +11410,14 @@ public class ApplicationController implements Initializable {
 				VERDEF_TABLE_Item.getChildren().add(vd_next_Item);
 
 				//参照先のVerdauxArrayを作成
-				makeVerdauxArray(vd_aux_Item, vdauxAddr, vdauxVaddr, vdauxEntryCount, index, strStrVaddr, strStrDataSize);
+				makeVerdauxArray(vd_aux_Item, vdauxAddr, vdauxVaddr, vdauxEntryCount, index, flags, strStrVaddr, strStrDataSize);
 
 				count++;
 			}
 		}
 	}
 
-	private void makeVerdauxArray(TreeItem<EPlusViewerTreeTableRecord> item, String vdauxAddr, String vdauxVaddr, int vdauxEntryCount, Integer index, String strStrVaddr, String strStrDataSize){
+	private void makeVerdauxArray(TreeItem<EPlusViewerTreeTableRecord> item, String vdauxAddr, String vdauxVaddr, int vdauxEntryCount, Integer index, int flags, String strStrVaddr, String strStrDataSize){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
 			//開始アドレス取得
@@ -11368,7 +11560,11 @@ public class ApplicationController implements Initializable {
 
 				//索引、バージョン保存
 				if(count==0 && gnuVersionMap!=null && index>0 && strVersion!=null){
-					gnuVersionMap.put(index, strVersion);
+					if(flags==VER_FLG_BASE){
+						gnuVersionMap.put(index, "global");
+					}else{
+						gnuVersionMap.put(index, strVersion);
+					}
 				}
 				rtnStrVal	= null;
 				strVersion	= null;
@@ -11561,7 +11757,11 @@ public class ApplicationController implements Initializable {
 
 				//索引、バージョン保存
 				if(count==0 && gnuVersionMap!=null && index>0 && strVersion!=null){
-					gnuVersionMap.put(index, strVersion);
+					if(flags==VER_FLG_BASE){
+						gnuVersionMap.put(index, "global");
+					}else{
+						gnuVersionMap.put(index, strVersion);
+					}
 				}
 				rtnStrVal	= null;
 				strVersion	= null;
@@ -15359,8 +15559,8 @@ public class ApplicationController implements Initializable {
 				case DT_PLTGOT		:
 					analysis	+= "DT_PLTGOT(3)";
 					break;
-				case DT_X86_64_NUM		:
-					analysis	+= "DT_X86_64_NUM or DT_HASH(4)";
+				case DT_HASH		:
+					analysis	+= "DT_HASH(4)";
 					break;
 				case DT_STRTAB		:
 					analysis	+= "DT_STRTAB(5)";
@@ -16441,6 +16641,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 			long vl			= 0;
 
@@ -16646,7 +16847,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -16670,6 +16871,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -16713,7 +16916,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -16951,6 +17164,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 			long vl			= 0;
 
@@ -17070,7 +17284,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -17094,6 +17308,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -17137,7 +17353,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -18971,6 +19197,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 
 			//オフセット
@@ -19175,7 +19402,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -19199,6 +19426,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -19242,7 +19471,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -19481,6 +19720,7 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			byte vb			= 0;
 			int v			= 0;
 			long vl			= 0;
 
@@ -19601,7 +19841,7 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				byte vb		= data[offset+size-1];
+				vb			= data[offset+size-1];
 				//上位4bit
 				if((vb>>4)==0){
 					analysis	+= "STB_LOCAL(0x0)"+"\n";
@@ -19625,6 +19865,8 @@ public class ApplicationController implements Initializable {
 					analysis	+= "STT_COMMON(0x5)"+"\n";
 				}else if((vb&0xf)==STT_TLS){
 					analysis	+= "STT_TLS(0x6)"+"\n";
+				}else if((vb&0xf)==STT_NUM){
+					analysis	+= "STT_NUM(0x7)"+"\n";
 				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_info_Notes;
 				beforesize	= size;
@@ -19668,7 +19910,17 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
+				vb			= data[offset+size-1];
 				analysis	= "";
+				if((vb&0x3)==STV_DEFAULT){
+					analysis	+= "STV_DEFAULT(0)";
+				}else if((vb&0x3)==STV_INTERNAL){
+					analysis	+= "STV_INTERNAL(1)";
+				}else if((vb&0x3)==STV_HIDDEN){
+					analysis	+= "STV_HIDDEN(2)";
+				}else if((vb&0x3)==STV_PROTECTED){
+					analysis	+= "STV_PROTECTED(3)";
+				}
 				notes		= ELF_DYNAMIC_SYMBOL_TABLE_st_other_Notes;
 				beforesize	= size;
 
@@ -21007,7 +21259,7 @@ public class ApplicationController implements Initializable {
 		byte[] bytes	 	= null;
 		ByteBuffer bytesBuf = null;
 
-		bytes	= DatatypeConverter.parseHexBinary(str);
+		bytes	= parseHexBinary(str);
 		bytesBuf = ByteBuffer.wrap(bytes);
 
 		if(little) {
@@ -21033,7 +21285,7 @@ public class ApplicationController implements Initializable {
 		byte[] bytes	 	= null;
 		ByteBuffer bytesBuf = null;
 
-		bytes	= DatatypeConverter.parseHexBinary(str);
+		bytes	= parseHexBinary(str);
 		bytesBuf = ByteBuffer.wrap(bytes);
 
 		if(little) {
@@ -21061,7 +21313,7 @@ public class ApplicationController implements Initializable {
 		int datacount	= 0;
 
 		//開始番地（文字列）を開始番地（数値）に変換する
-//		startBytes	= DatatypeConverter.parseHexBinary(startStr);
+//		startBytes	= parseHexBinary(startStr);
 //		startBuf = ByteBuffer.wrap(startBytes);
 //		startBuf.order(ByteOrder.LITTLE_ENDIAN);
 //		//System.out.println(startBuf.getInt(0));
@@ -21081,7 +21333,7 @@ public class ApplicationController implements Initializable {
 			//最初の1行
 			for(int i=offset; i<16; i++){
 				dataStr = binTableRecord.getBinData(i);
-				data[datacount] = DatatypeConverter.parseHexBinary(dataStr)[0];
+				data[datacount] = parseHexBinary(dataStr)[0];
 				datacount++;
 			}
 			lineno++;
@@ -21096,7 +21348,7 @@ public class ApplicationController implements Initializable {
 //					System.out.println("size="+size);
 					if(datacount < size) {
 						dataStr = binTableRecord.getBinData(j);
-						data[datacount] = DatatypeConverter.parseHexBinary(dataStr)[0];
+						data[datacount] = parseHexBinary(dataStr)[0];
 						datacount++;
 					}else {
 						break;
@@ -21109,7 +21361,7 @@ public class ApplicationController implements Initializable {
 			//最初の1行
 			for(int i=offset; i<offset+size; i++){
 				dataStr = binTableRecord.getBinData(i);
-				data[datacount]	= DatatypeConverter.parseHexBinary(dataStr)[0];
+				data[datacount]	= parseHexBinary(dataStr)[0];
 				datacount++;
 			}
 		}
