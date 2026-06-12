@@ -404,10 +404,22 @@ public class ApplicationController implements Initializable {
 	private String VERNAUX_vna_next_Notes					= "";
 
 	//VERSYM notes
-	private String VERSYM_TABLE_Notes								= "";
+	private String VERSYM_TABLE_Notes						= "";
 
-	//X86_64_Plt notes
-	private String X86_64_Plt_Array_Notes					= "";
+	//Plt notes (.plt)
+	private String Plt_Array_Notes							= "";
+
+	//PltGot notes (.plt.got)
+	private String Plt_Got_Array_Notes						= "";
+
+	//X86_64_Plt notes (.plt.sec)
+	private String Plt_Sec_Array_Notes					= "";
+
+	//Got notes (.got)
+	private String Got_Array_Notes							= "";
+
+	//Got notes (.got.plt)
+	private String Got_Plt_Array_Notes						= "";
 
 	//Data notes
 	private String Data_Notes								= "";
@@ -554,6 +566,7 @@ public class ApplicationController implements Initializable {
 	private final static int SHT_NUM			= 19;
 	private final static int SHT_LOOS			= 0x60000000;
 	private final static int SHT_HIOS			= 0x6fffffff;
+	private final static int SHT_GNU_SFRAME		= 0x6ffffff4;
 	private final static int SHT_GNU_HASH		= 0x6ffffff6;
 	private final static int SHT_GNU_LIBLIST	= 0x6ffffff7;
 	private final static int SHT_CHECKSUM		= 0x6ffffff8;
@@ -5331,7 +5344,7 @@ public class ApplicationController implements Initializable {
 
 			}else if(getStringToInt(ph.getP_type_str(), false)==PT_DYNAMIC){
 
-				makeElfDinamic(ELF_PROGRAM_DATA_Item, ph);
+				makeElfDynamic(ELF_PROGRAM_DATA_Item, ph);
 
 			}else if(getStringToInt(ph.getP_type_str(), false)==PT_NOTE){
 
@@ -5436,7 +5449,7 @@ public class ApplicationController implements Initializable {
 
 			}else if(getStringToInt(ph.getP_type_str(), false)==PT_DYNAMIC){
 
-				makeElfDinamic(ELF_PROGRAM_DATA_Item, ph);
+				makeElfDynamic(ELF_PROGRAM_DATA_Item, ph);
 
 			}else if(getStringToInt(ph.getP_type_str(), false)==PT_NOTE){
 
@@ -5447,7 +5460,7 @@ public class ApplicationController implements Initializable {
 		}
 	}
 
-	private void makeElfDinamic(TreeItem<EPlusViewerTreeTableRecord> item, ProgramHeader ph){
+	private void makeElfDynamic(TreeItem<EPlusViewerTreeTableRecord> item, ProgramHeader ph){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
 			//開始アドレス取得
@@ -6263,7 +6276,7 @@ public class ApplicationController implements Initializable {
 					strX8664PltVaddr   	= map.get(String.format("%08X", DT_X86_64_PLT).toUpperCase());
 					strX8664PltSize		= map.get(String.format("%08X", DT_X86_64_PLTSZ).toUpperCase());
 					strX8664PltEntSize	= map.get(String.format("%08X", DT_X86_64_PLTENT).toUpperCase());
-					makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					makePltSecArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
 					break;
 				default:
 					break;
@@ -7211,7 +7224,7 @@ public class ApplicationController implements Initializable {
 					strX8664PltVaddr   	= map.get(String.format("%016X", DT_X86_64_PLT).toUpperCase());
 					strX8664PltSize		= map.get(String.format("%016X", DT_X86_64_PLTSZ).toUpperCase());
 					strX8664PltEntSize	= map.get(String.format("%016X", DT_X86_64_PLTENT).toUpperCase());
-					makeX8664PltArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					makePltSecArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
 					break;
 				default:
 					break;
@@ -13107,171 +13120,6 @@ public class ApplicationController implements Initializable {
 		}
 	}
 
-	private void makeX8664PltArray(TreeItem<EPlusViewerTreeTableRecord> item, String strX8664PltVaddr, String strX8664PltSize, String strX8664PltEntSize){
-
-		if(ELFCLASS==ELFCLASS32){	//32bit
-			//開始アドレス取得
-			int startAddr32	= getStringToInt(getVaddrToFileoffset(strX8664PltVaddr, false), false);
-
-			//エントリサイズ
-			int entSize			= getStringToInt(strX8664PltEntSize, false);
-
-			//データ取得用
-			int dataSize	= getStringToInt(strX8664PltSize, false);
-			byte[] data		= null;
-
-			//データ取得
-			data	= getBintableBytes(startAddr32, dataSize);
-
-			//設定用変数
-			String name		= "";
-			int raw			= 0;
-			int rawAddr		= 0;
-			int rva			= 0;
-			int lma			= 0;
-			int offset		= 0;
-			int beforesize	= 0;
-			int size		= 0;
-			String value	= "";
-			String analysis = "";
-			String notes	= "";
-			String strLma	= null;
-
-			//カウント
-			int count			= 0;
-
-			//アドレス設定
-			rawAddr	= startAddr32;
-			rva		= getStringToInt(strX8664PltVaddr, false);
-			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
-			if(strLma!=null){
-				lma		= getStringToInt(strLma, false);
-			}
-
-			for(int c=0; c<dataSize; c+=entSize){
-				//0x00	Variable	plt[]
-				name		= "plt"+"["+count+"]";
-				rawAddr		+= beforesize;
-				raw			= rawAddr;
-				offset		+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				size		= entSize;
-				value		= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}
-				analysis	= "";
-				notes		= X86_64_Plt_Array_Notes;
-				beforesize	= size;
-
-				EPlusViewerTreeTableRecord Plt	= null;
-				if(rva!=0 && lma!=0){
-					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else {
-					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
-				item.getChildren().add(Plt_Item);
-
-				count++;
-			}
-
-		}else if(ELFCLASS==ELFCLASS64){	//64bit
-			//開始アドレス取得
-			long startAddr64	= getStringToLong(getVaddrToFileoffset(strX8664PltVaddr, false), false);
-			int startAddr32		= (int)startAddr64;
-
-			//エントリサイズ
-			int entSize			= (int)getStringToLong(strX8664PltEntSize, false);
-
-			//データ取得用
-			int dataSize	= (int)getStringToLong(strX8664PltSize, false);
-			byte[] data		= null;
-
-			//データ取得
-			data	= getBintableBytes(startAddr32, dataSize);
-
-			//設定用変数
-			String name		= "";
-			int raw			= 0;
-			int rawAddr		= 0;
-			long rva		= 0;
-			long lma		= 0;
-			int offset		= 0;
-			int beforesize	= 0;
-			int size		= 0;
-			String value	= "";
-			String analysis = "";
-			String notes	= "";
-			String strLma	= null;
-
-			//カウント
-			int count			= 0;
-
-			//アドレス設定
-			rawAddr	= startAddr32;
-			rva		= getStringToLong(strX8664PltVaddr, false);
-			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
-			if(strLma!=null){
-				lma	= getStringToLong(strLma, false);
-			}
-
-			for(int c=0; c<dataSize; c+=entSize){
-				//0x00	Variable	plt[]
-				name		= "plt"+"["+count+"]";
-				rawAddr		+= beforesize;
-				raw			= rawAddr;
-				offset		+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				size		= entSize;
-				value		= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}
-				analysis	= "";
-				notes		= X86_64_Plt_Array_Notes;
-				beforesize	= size;
-
-				EPlusViewerTreeTableRecord Plt	= null;
-				if(rva!=0 && lma!=0){
-					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else{
-					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
-				item.getChildren().add(Plt_Item);
-
-				count++;
-			}
-		}
-	}
-
 	private void makeElfNote(TreeItem<EPlusViewerTreeTableRecord> item, ProgramHeader ph){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
@@ -14090,6 +13938,9 @@ public class ApplicationController implements Initializable {
 				case SHT_LOOS		:
 					analysis	+= "SHT_LOOS(0x60000000)";
 					break;
+				case SHT_GNU_SFRAME	:
+					analysis	+= "SHT_GNU_SFRAME(0x6ffffff4)";
+					break;
 				case SHT_GNU_HASH	:
 					analysis	+= "SHT_GNU_HASH(0x6ffffff6)";
 					break;
@@ -14436,6 +14287,7 @@ public class ApplicationController implements Initializable {
 				Iterator<TreeItem<EPlusViewerTreeTableRecord>> ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 
 				TreeItem<EPlusViewerTreeTableRecord> ELF_SECTION_HEADER_Item	= null;
+				TreeItem<EPlusViewerTreeTableRecord> DYNSYM_Item				= null;
 				EPlusViewerTreeTableRecord ELF_SECTION_HEADER					= null;
 				TreeItem<EPlusViewerTreeTableRecord> sh_name_Item				= null;
 				EPlusViewerTreeTableRecord sh_name								= null;
@@ -14448,6 +14300,8 @@ public class ApplicationController implements Initializable {
 					ELF_SECTION_HEADER		= ELF_SECTION_HEADER_Item.getValue();
 					sh_name_Item			= ELF_SECTION_HEADER_Item.getChildren().get(0);
 					sh_name					= sh_name_Item.getValue();
+
+
 					//0x00	Variable	name;
 					name			= "name";
 					int index		= getStringToInt(sh_name.getValue(), false);
@@ -14485,13 +14339,16 @@ public class ApplicationController implements Initializable {
 					sectionHeaderCount++;
 				}
 
-				//1回目（シンボルだけ）
+				//1回目に優先して作成するものを作成
 				//セクションヘッダー取得
 				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
 				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 				ELF_SECTION_HEADER_Item					= null;
-				SectionHeader sh	= null;
-				sectionHeaderCount	= 0;
+				DYNSYM_Item								= null;
+				SectionHeader sh						= null;
+				sectionHeaderCount						= 0;
+				String strDynStrVaddr					= null;	//.dynstr
+				String strDynStrDataSize				= null;	//.dynstr
 
 				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
 
@@ -14499,15 +14356,22 @@ public class ApplicationController implements Initializable {
 					sh						= sectionHeaderList.get(sectionHeaderCount);
 					int type				= sh.getSh_type_int();
 
-					if(type==SHT_SYMTAB || type==SHT_STRTAB){
+					if(type==SHT_SYMTAB || type==SHT_STRTAB || type==SHT_DYNSYM){
 						//SectionData作成
-						makeElfSectionData(ELF_SECTION_HEADER_Item, sh);
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, null, null, null);
+
+						if(type==SHT_DYNSYM){
+							DYNSYM_Item	= ELF_SECTION_HEADER_Item.getChildren().get(10);	//SHT_DYNSYM ELF_SECTION_DATA
+						}else if(type==SHT_STRTAB && sh.getName().equals(".dynstr")){
+							strDynStrVaddr		= sh.getSh_addr_str();
+							strDynStrDataSize	= sh.getSh_size_str();
+						}
 					}
 
 					sectionHeaderCount++;
 				}
 
-				//2回目（シンボル以外）
+				//2回目にSHT_GNU_VERDEF、SHT_GNU_VERNEEDを作成
 				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
 				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 				ELF_SECTION_HEADER_Item					= null;
@@ -14520,9 +14384,51 @@ public class ApplicationController implements Initializable {
 					sh						= sectionHeaderList.get(sectionHeaderCount);
 					int type				= sh.getSh_type_int();
 
-					if(type!=SHT_SYMTAB && type!=SHT_STRTAB && type!=SHT_NOBITS){
+					if(type==SHT_GNU_VERDEF || type==SHT_GNU_VERNEED){
 						//SectionData作成
-						makeElfSectionData(ELF_SECTION_HEADER_Item, sh);
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
+					}
+
+					sectionHeaderCount++;
+				}
+
+				//3回目にSHT_GNU_VERSYMを作成
+				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
+				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
+				ELF_SECTION_HEADER_Item					= null;
+				sh										= null;
+				sectionHeaderCount						= 0;
+
+				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
+
+					ELF_SECTION_HEADER_Item	= (TreeItem<EPlusViewerTreeTableRecord>)ELF_SECTION_HEADER_TABLE_Item_Iterator.next();
+					sh						= sectionHeaderList.get(sectionHeaderCount);
+					int type				= sh.getSh_type_int();
+
+					if(type==SHT_GNU_VERSYM){
+						//SectionData作成
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
+					}
+
+					sectionHeaderCount++;
+				}
+
+				//4回目に残りを作成
+				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
+				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
+				ELF_SECTION_HEADER_Item					= null;
+				sh										= null;
+				sectionHeaderCount						= 0;
+
+				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
+
+					ELF_SECTION_HEADER_Item	= (TreeItem<EPlusViewerTreeTableRecord>)ELF_SECTION_HEADER_TABLE_Item_Iterator.next();
+					sh						= sectionHeaderList.get(sectionHeaderCount);
+					int type				= sh.getSh_type_int();
+
+					if(type!=SHT_SYMTAB && type!=SHT_STRTAB && type!=SHT_DYNSYM && type!=SHT_GNU_VERDEF && type!=SHT_GNU_VERNEED && type!=SHT_GNU_VERSYM && type!=SHT_NOBITS){
+						//SectionData作成
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
 					}
 
 					sectionHeaderCount++;
@@ -14720,6 +14626,9 @@ public class ApplicationController implements Initializable {
 					break;
 				case SHT_LOOS		:
 					analysis	+= "SHT_LOOS(0x60000000)";
+					break;
+				case SHT_GNU_SFRAME	:
+					analysis	+= "SHT_GNU_SFRAME(0x6ffffff4)";
 					break;
 				case SHT_GNU_HASH	:
 					analysis	+= "SHT_GNU_HASH(0x6ffffff6)";
@@ -15067,6 +14976,7 @@ public class ApplicationController implements Initializable {
 				Iterator<TreeItem<EPlusViewerTreeTableRecord>> ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 
 				TreeItem<EPlusViewerTreeTableRecord> ELF_SECTION_HEADER_Item	= null;
+				TreeItem<EPlusViewerTreeTableRecord> DYNSYM_Item				= null;
 				EPlusViewerTreeTableRecord ELF_SECTION_HEADER					= null;
 				TreeItem<EPlusViewerTreeTableRecord> sh_name_Item				= null;
 				EPlusViewerTreeTableRecord sh_name								= null;
@@ -15119,13 +15029,15 @@ public class ApplicationController implements Initializable {
 				}
 
 
-				//1回目（シンボルだけ）
+				//1回目に優先して作成するものを作成
 				//セクションヘッダー取得
 				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
 				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 				ELF_SECTION_HEADER_Item					= null;
 				SectionHeader sh						= null;
 				sectionHeaderCount						= 0;
+				String strDynStrVaddr					= null;	//.dynstr
+				String strDynStrDataSize				= null;	//.dynstr
 
 				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
 
@@ -15133,14 +15045,21 @@ public class ApplicationController implements Initializable {
 					sh						= sectionHeaderList.get(sectionHeaderCount);
 					int type				= sh.getSh_type_int();
 
-					if(type==SHT_SYMTAB || type==SHT_STRTAB){
+					if(type==SHT_SYMTAB || type==SHT_STRTAB || type==SHT_DYNSYM){
 						//SectionData作成
-						makeElfSectionData(ELF_SECTION_HEADER_Item, sh);
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, null, null, null);
+
+						if(type==SHT_DYNSYM){
+							DYNSYM_Item	= ELF_SECTION_HEADER_Item.getChildren().get(10);	//SHT_DYNSYM ELF_SECTION_DATA
+						}else if(type==SHT_STRTAB && sh.getName().equals(".dynstr")){
+							strDynStrVaddr		= sh.getSh_addr_str();
+							strDynStrDataSize	= sh.getSh_size_str();
+						}
 					}
 					sectionHeaderCount++;
 				}
 
-				//2回目（シンボル、ファイル内にセクションデータがないセクション以外）
+				//2回目にSHT_GNU_VERDEF、SHT_GNU_VERNEEDを作成
 				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
 				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 				ELF_SECTION_HEADER_Item					= null;
@@ -15153,9 +15072,49 @@ public class ApplicationController implements Initializable {
 					sh						= sectionHeaderList.get(sectionHeaderCount);
 					int type				= sh.getSh_type_int();
 
-					if(type!=SHT_SYMTAB && type!=SHT_STRTAB && type!=SHT_NOBITS){
+					if(type==SHT_GNU_VERDEF || type==SHT_GNU_VERNEED){
 						//SectionData作成
-						makeElfSectionData(ELF_SECTION_HEADER_Item, sh);
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
+					}
+					sectionHeaderCount++;
+				}
+
+				//3回目にSHT_GNU_VERSYMを作成
+				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
+				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
+				ELF_SECTION_HEADER_Item					= null;
+				sh										= null;
+				sectionHeaderCount						= 0;
+
+				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
+
+					ELF_SECTION_HEADER_Item	= (TreeItem<EPlusViewerTreeTableRecord>)ELF_SECTION_HEADER_TABLE_Item_Iterator.next();
+					sh						= sectionHeaderList.get(sectionHeaderCount);
+					int type				= sh.getSh_type_int();
+
+					if(type==SHT_GNU_VERSYM){
+						//SectionData作成
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
+					}
+					sectionHeaderCount++;
+				}
+
+				//3回目に残りを作成
+				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
+				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
+				ELF_SECTION_HEADER_Item					= null;
+				sh										= null;
+				sectionHeaderCount						= 0;
+
+				while(ELF_SECTION_HEADER_TABLE_Item_Iterator.hasNext()){
+
+					ELF_SECTION_HEADER_Item	= (TreeItem<EPlusViewerTreeTableRecord>)ELF_SECTION_HEADER_TABLE_Item_Iterator.next();
+					sh						= sectionHeaderList.get(sectionHeaderCount);
+					int type				= sh.getSh_type_int();
+
+					if(type!=SHT_SYMTAB && type!=SHT_STRTAB && type!=SHT_DYNSYM && type!=SHT_GNU_VERDEF && type!=SHT_GNU_VERNEED && type!=SHT_GNU_VERSYM && type!=SHT_NOBITS){
+						//SectionData作成
+						makeElfSectionData(ELF_SECTION_HEADER_Item, sh, DYNSYM_Item, strDynStrVaddr, strDynStrDataSize);
 					}
 					sectionHeaderCount++;
 				}
@@ -15163,7 +15122,7 @@ public class ApplicationController implements Initializable {
 		}
 	}
 
-	private void makeElfSectionData(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
+	private void makeElfSectionData(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh, TreeItem<EPlusViewerTreeTableRecord> DYNSYM_Item, String strDynStrVaddr, String strDynStrDataSize){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
 			//開始アドレス取得
@@ -15235,6 +15194,17 @@ public class ApplicationController implements Initializable {
 			case SHT_NULL		:
 				break;
 			case SHT_PROGBITS	:
+				if(sh.getName().equals(".got")){
+					makeGotArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str());
+				}else if(sh.getName().equals(".got.plt")){
+					makeGotPltArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str());
+				}else if(sh.getName().equals(".plt")){
+					makePltArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}else if(sh.getName().equals(".plt.got")){
+					makePltGotArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}else if(sh.getName().equals(".plt.sec")){
+					makePltSecArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}
 				break;
 			case SHT_SYMTAB		:
 				makeElfSymbolTable(ELF_SECTION_DATA_Item, sh);
@@ -15247,7 +15217,7 @@ public class ApplicationController implements Initializable {
 			case SHT_HASH		:
 				break;
 			case SHT_DYNAMIC	:
-				makeElfDinamic(ELF_SECTION_DATA_Item, sh);
+				makeElfDynamic(ELF_SECTION_DATA_Item, sh);
 				break;
 			case SHT_NOTE		:
 				makeElfNote(ELF_SECTION_DATA_Item, sh);
@@ -15273,8 +15243,13 @@ public class ApplicationController implements Initializable {
 			case SHT_SYMTAB_SHNDX	:
 				break;
 			case SHT_NUM		:
+				if(sh.getName().equals(".relr.dyn")){
+					makeRelrTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}
 				break;
 			case SHT_LOOS		:
+				break;
+			case SHT_GNU_SFRAME	:
 				break;
 			case SHT_GNU_HASH	:
 				break;
@@ -15289,10 +15264,13 @@ public class ApplicationController implements Initializable {
 			case SHT_SUNW_SYMINFO	:
 				break;
 			case SHT_GNU_VERDEF	:
+				makeVerDefTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), strDynStrVaddr, strDynStrDataSize);
 				break;
 			case SHT_GNU_VERNEED	:
+				makeVerNeedTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_info_str(), strDynStrVaddr, strDynStrDataSize);
 				break;
 			case SHT_GNU_VERSYM	:
+				makeVerSymTable(ELF_SECTION_DATA_Item, DYNSYM_Item, sh.getSh_addr_str());
 				break;
 			case SHT_LOPROC		:
 				break;
@@ -15376,6 +15354,17 @@ public class ApplicationController implements Initializable {
 			case SHT_NULL		:
 				break;
 			case SHT_PROGBITS	:
+				if(sh.getName().equals(".got")){
+					makeGotArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str());
+				}else if(sh.getName().equals(".got.plt")){
+					makeGotPltArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str());
+				}else if(sh.getName().equals(".plt")){
+					makePltArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}else if(sh.getName().equals(".plt.got")){
+					makePltGotArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}else if(sh.getName().equals(".plt.sec")){
+					makePltSecArray(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}
 				break;
 			case SHT_SYMTAB		:
 				makeElfSymbolTable(ELF_SECTION_DATA_Item, sh);
@@ -15388,7 +15377,7 @@ public class ApplicationController implements Initializable {
 			case SHT_HASH		:
 				break;
 			case SHT_DYNAMIC	:
-				makeElfDinamic(ELF_SECTION_DATA_Item, sh);
+				makeElfDynamic(ELF_SECTION_DATA_Item, sh);
 				break;
 			case SHT_NOTE		:
 				makeElfNote(ELF_SECTION_DATA_Item, sh);
@@ -15414,8 +15403,13 @@ public class ApplicationController implements Initializable {
 			case SHT_SYMTAB_SHNDX	:
 				break;
 			case SHT_NUM		:
+				if(sh.getName().equals(".relr.dyn")){
+					makeRelrTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), sh.getSh_entsize_str());
+				}
 				break;
 			case SHT_LOOS		:
+				break;
+			case SHT_GNU_SFRAME	:
 				break;
 			case SHT_GNU_HASH	:
 				break;
@@ -15430,10 +15424,13 @@ public class ApplicationController implements Initializable {
 			case SHT_SUNW_SYMINFO	:
 				break;
 			case SHT_GNU_VERDEF	:
+				makeVerDefTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), sh.getSh_size_str(), strDynStrVaddr, strDynStrDataSize);
 				break;
 			case SHT_GNU_VERNEED	:
+				makeVerNeedTable(ELF_SECTION_DATA_Item, sh.getSh_addr_str(), String.format("%016X", sh.getSh_info_int()).toUpperCase(), strDynStrVaddr, strDynStrDataSize);
 				break;
 			case SHT_GNU_VERSYM	:
+				makeVerSymTable(ELF_SECTION_DATA_Item, DYNSYM_Item, sh.getSh_addr_str());
 				break;
 			case SHT_LOPROC		:
 				break;
@@ -15447,14 +15444,14 @@ public class ApplicationController implements Initializable {
 		}
 	}
 
-	private void makeElfDinamic(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
+	private void makeGotArray(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, String strDataSize){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
 			//開始アドレス取得
-			int startAddr32	= sh.getSh_offset_int();
+			int startAddr32	= getStringToInt(getVaddrToFileoffset(strVaddr, false), false);
 
 			//データ取得用
-			int dataSize	= sh.getSh_size_int();
+			int dataSize	= getStringToInt(strDataSize, false);
 			byte[] data		= null;
 
 			//データ取得
@@ -15472,7 +15469,907 @@ public class ApplicationController implements Initializable {
 			String value	= "";
 			String analysis = "";
 			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+			int dataSizeCount	= 0;
+
+			//チェックフラグ
+			boolean checkFlag	= false;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToInt(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+			if(strLma!=null){
+				lma		= getStringToInt(strLma, false);
+			}
+
+			while(dataSizeCount < dataSize) {
+				//0x00	Variable	.got[]
+				name		= ".got"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= ELF32_ADDR_SIZE;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				if(getVaddrToFileoffset(value, false)!=null){
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
+				}else if(getStringToInt(value, false)!=0){
+					checkFlag	= true;
+				}
+				notes		= Got_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Addr	= null;
+				if(rva!=0 && lma!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else {
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Addr_Item	= new TreeItem<>(Addr);
+//				Addr_Item.setExpanded(true);
+				item.getChildren().add(Addr_Item);
+
+				//チェックあり
+				if(checkFlag){
+					Addr.setCheck("*");
+				}
+
+				count++;
+				dataSizeCount	+= ELF32_ADDR_SIZE;
+				checkFlag		= false;
+			}
+
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//データ取得用
+			int dataSize	= (int)getStringToLong(strDataSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+			int dataSizeCount	= 0;
+
+			//チェックフラグ
+			boolean checkFlag	= false;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToLong(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma	= getStringToLong(strLma, false);
+			}
+
+			while(dataSizeCount < dataSize) {
+				//0x00	Variable	.got[]
+				name		= ".got"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= ELF64_ADDR_SIZE;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				if(getVaddrToFileoffset(value, false)!=null){
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
+				}else if(getStringToLong(value, false)!=0){
+					checkFlag	= true;
+				}
+				notes		= Got_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Addr	= null;
+				if(rva!=0 && lma!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Addr_Item	= new TreeItem<>(Addr);
+//				Addr_Item.setExpanded(true);
+				item.getChildren().add(Addr_Item);
+
+				//チェックあり
+				if(checkFlag){
+					Addr.setCheck("*");
+				}
+
+				count++;
+				dataSizeCount	+= ELF64_ADDR_SIZE;
+				checkFlag		= false;
+			}
+		}
+	}
+
+	private void makeGotPltArray(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, String strDataSize){
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			//開始アドレス取得
+			int startAddr32	= getStringToInt(getVaddrToFileoffset(strVaddr, false), false);
+
+			//データ取得用
+			int dataSize	= getStringToInt(strDataSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			int rva			= 0;
+			int lma			= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+			int dataSizeCount	= 0;
+
+			//チェックフラグ
+			boolean checkFlag	= false;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToInt(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+			if(strLma!=null){
+				lma		= getStringToInt(strLma, false);
+			}
+
+			while(dataSizeCount < dataSize) {
+				//0x00	Variable	.got.plt[]
+				name		= ".got.plt"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= ELF32_ADDR_SIZE;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				if(getVaddrToFileoffset(value, false)!=null){
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
+				}else if(getStringToInt(value, false)!=0){
+					checkFlag	= true;
+				}
+				notes		= Got_Plt_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Addr	= null;
+				if(rva!=0 && lma!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else {
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Addr_Item	= new TreeItem<>(Addr);
+//				Addr_Item.setExpanded(true);
+				item.getChildren().add(Addr_Item);
+
+				//チェックあり
+				if(checkFlag){
+					Addr.setCheck("*");
+				}
+
+				count++;
+				dataSizeCount	+= ELF32_ADDR_SIZE;
+				checkFlag		= false;
+			}
+
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//データ取得用
+			int dataSize	= (int)getStringToLong(strDataSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+			int dataSizeCount	= 0;
+
+			//チェックフラグ
+			boolean checkFlag	= false;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToLong(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma	= getStringToLong(strLma, false);
+			}
+
+			while(dataSizeCount < dataSize) {
+				//0x00	Variable	.got.plt[]
+				name		= ".got.plt"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= ELF64_ADDR_SIZE;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				if(getVaddrToFileoffset(value, false)!=null){
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
+				}else if(getStringToLong(value, false)!=0){
+					checkFlag	= true;
+				}
+				notes		= Got_Plt_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Addr	= null;
+				if(rva!=0 && lma!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					Addr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Addr_Item	= new TreeItem<>(Addr);
+//				Addr_Item.setExpanded(true);
+				item.getChildren().add(Addr_Item);
+
+				//チェックあり
+				if(checkFlag){
+					Addr.setCheck("*");
+				}
+
+				count++;
+				dataSizeCount	+= ELF64_ADDR_SIZE;
+				checkFlag		= false;
+			}
+		}
+	}
+
+	private void makePltArray(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, String strSize, String strEntSize){
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			//開始アドレス取得
+			int startAddr32	= getStringToInt(getVaddrToFileoffset(strVaddr, false), false);
+
+			//エントリサイズ
+			int entSize			= getStringToInt(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= getStringToInt(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			int rva			= 0;
+			int lma			= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToInt(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+			if(strLma!=null){
+				lma		= getStringToInt(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt[]
+				name		= ".plt"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else {
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//エントリサイズ
+			int entSize			= (int)getStringToLong(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= (int)getStringToLong(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToLong(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma	= getStringToLong(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt[]
+				name		= ".plt"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+		}
+	}
+
+	private void makePltGotArray(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, String strSize, String strEntSize){
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			//開始アドレス取得
+			int startAddr32	= getStringToInt(getVaddrToFileoffset(strVaddr, false), false);
+
+			//エントリサイズ
+			int entSize			= getStringToInt(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= getStringToInt(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			int rva			= 0;
+			int lma			= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToInt(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+			if(strLma!=null){
+				lma		= getStringToInt(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt.got[]
+				name		= ".plt.got"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Got_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else {
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//エントリサイズ
+			int entSize			= (int)getStringToLong(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= (int)getStringToLong(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToLong(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma	= getStringToLong(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt.got[]
+				name		= ".plt.got"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Got_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+		}
+	}
+
+	private void makePltSecArray(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, String strSize, String strEntSize){
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			//開始アドレス取得
+			int startAddr32	= getStringToInt(getVaddrToFileoffset(strVaddr, false), false);
+
+			//エントリサイズ
+			int entSize			= getStringToInt(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= getStringToInt(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			int rva			= 0;
+			int lma			= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToInt(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+			if(strLma!=null){
+				lma		= getStringToInt(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt.sec[]
+				name		= ".plt.sec"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Sec_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else {
+					Plt	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//エントリサイズ
+			int entSize			= (int)getStringToLong(strEntSize, false);
+			if(entSize == 0){
+				return;
+			}
+
+			//データ取得用
+			int dataSize	= (int)getStringToLong(strSize, false);
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			String strLma	= null;
+
+			//カウント
+			int count			= 0;
+
+			//アドレス設定
+			rawAddr	= startAddr32;
+			rva		= getStringToLong(strVaddr, false);
+			strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma	= getStringToLong(strLma, false);
+			}
+
+			for(int c=0; c<dataSize; c+=entSize){
+				//0x00	Variable	.plt.sec[]
+				name		= ".plt.sec"+"["+count+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size		= entSize;
+				value		= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= Plt_Sec_Array_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord Plt	= null;
+				if(rva!=0 && lma!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					Plt		= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> Plt_Item	= new TreeItem<>(Plt);
+				item.getChildren().add(Plt_Item);
+
+				count++;
+			}
+		}
+	}
+
+	private void makeElfDynamic(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			//開始アドレス取得
+			int startAddr32	= sh.getSh_offset_int();
+
+			//データ取得用
+			int dataSize	= sh.getSh_size_int();
+			byte[] data		= null;
+
+			//データ取得
+			data		= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			int rva			= 0;
+			int lma			= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
 			int v			= 0;
+			String tag		= null;
 
 			//オフセット
 			int startOffset	= 0;
@@ -15480,6 +16377,12 @@ public class ApplicationController implements Initializable {
 
 			//カウント
 			int count		= 0;
+
+			//データ格納用HashMap
+			HashMap<String, String> map = new HashMap<String, String>();
+
+			//シンボルテーブル
+			TreeItem<EPlusViewerTreeTableRecord> DT_SYMTAB_item	= null;
 
 			//アドレス設定
 			rawAddr			= startAddr32;
@@ -15499,7 +16402,7 @@ public class ApplicationController implements Initializable {
 					rva		+= beforesize;
 				}
 				if(lma!=0){
-					lma		+= beforesize;
+					lma	+= beforesize;
 				}
 				size		= ELF32_DYN_SIZE;
 				value		= "";
@@ -15545,6 +16448,7 @@ public class ApplicationController implements Initializable {
 				}
 				analysis	= "";
 				v			= getStringToInt(value, false);
+				tag			= value;
 				switch(v){
 				case DT_NULL		:
 					analysis	+= "DT_NULL(0)";
@@ -15748,6 +16652,10 @@ public class ApplicationController implements Initializable {
 				//ELF_DYNAMIC_ENTRY名更新
 				ELF_DYNAMIC_ENTRY.setName(ELF_DYNAMIC_ENTRY.getName()+":"+analysis);
 
+				//DT_SYMTABなら保存
+				if(v==DT_SYMTAB){
+					DT_SYMTAB_item	= ELF_DYNAMIC_ENTRY_Item;
+				}
 
 				if(v==DT_NEEDED){	//シンボル名
 
@@ -15775,8 +16683,8 @@ public class ApplicationController implements Initializable {
 					}
 					analysis	= "";
 					v			= getStringToInt(value, false);
-					analysis	+= "sh_link=0x"+sh.getSh_link_str()+"\n";
-					analysis	+= "=>"+ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sh.getSh_link_int()).getValue().getName()+"\n";
+					//analysis	+= "sh_link=0x"+sh.getSh_link_str()+"\n";
+					//analysis	+= "=>"+ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sh.getSh_link_int()).getValue().getName()+"\n";
 					analysis	+= "index=0x"+value+"\n";
 					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
 					beforesize	= size;
@@ -15793,8 +16701,8 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
-					//動的リンク用シンボルテーブルからシンボル名取得
-					makeDynamicSymbolName(d_val_Item, sh, v);
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else if(v==DT_SONAME){//共有オブジェクトの名前
 
@@ -15804,10 +16712,10 @@ public class ApplicationController implements Initializable {
 					raw		= rawAddr;
 					offset	+= beforesize;
 					if(rva!=0){
-						rva		+= beforesize;
+						rva	+= beforesize;
 					}
 					if(lma!=0){
-						lma		+= beforesize;
+						lma	+= beforesize;
 					}
 					size	= ELF32_SWORD_SIZE;
 					value	= "";
@@ -15835,6 +16743,9 @@ public class ApplicationController implements Initializable {
 					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else if(v==DT_RPATH ||
 						 v==DT_RUNPATH){	//path
@@ -15877,6 +16788,9 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
+					//HashMapに格納
+					map.put(tag, value);
+
 				}else if(v==DT_PLTRELSZ ||
 						 v==DT_RELASZ ||
 						 v==DT_RELAENT ||
@@ -15889,7 +16803,8 @@ public class ApplicationController implements Initializable {
 						 v==DT_PREINIT_ARRAYSZ ||
 						 v==DT_RELRSZ ||
 						 v==DT_RELRENT ||
-						 v==DT_X86_64_PLTSZ){		//サイズ
+						 v==DT_X86_64_PLTSZ ||
+						 v==DT_X86_64_PLTENT){		//サイズ
 
 					//0x04	Elf32_Sword	d_val
 					name	= "d_val";
@@ -15924,14 +16839,18 @@ public class ApplicationController implements Initializable {
 						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
 						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
+					}else {
 						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
 					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
-				}else if(v==DT_STRTAB ||
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_PLTGOT ||
+						 v==DT_STRTAB ||
 						 v==DT_SYMTAB ||
 						 v==DT_RELA ||
 						 v==DT_INIT ||
@@ -15943,8 +16862,8 @@ public class ApplicationController implements Initializable {
 						 v==DT_PREINIT_ARRAY ||
 						 v==DT_SYMTAB_SHNDX ||
 						 v==DT_RELR ||
-						 v==DT_VERSYM ||
 						 v==DT_VERDEF ||
+						 v==DT_VERSYM ||
 						 v==DT_VERNEED ||
 						 v==DT_X86_64_PLT){		//アドレス
 
@@ -15971,6 +16890,7 @@ public class ApplicationController implements Initializable {
 						}
 					}
 					analysis	= "";
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
 					notes		= ELF_DYNAMIC_ENTRY_d_ptr_Notes;
 					beforesize	= size;
 
@@ -15979,12 +16899,110 @@ public class ApplicationController implements Initializable {
 						d_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
 						d_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
+					}else {
 						d_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
 					TreeItem<EPlusViewerTreeTableRecord> d_ptr_Item	= new TreeItem<>(d_ptr);
 //					d_ptr_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_ptr_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_PLTREL){	//再配置エントリ型
+
+					//0x04	Elf32_Sword	d_val
+					name	= "d_val";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= ELF32_SWORD_SIZE;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= getStringToInt(value, false);
+					analysis	= "";
+					if(v==DT_RELA){
+						analysis	+= "RELA(7)"+"\n";
+					}else if(v==DT_REL){
+						analysis	+= "REL(17)"+"\n";
+					}
+					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
+					beforesize	= size;
+
+					EPlusViewerTreeTableRecord d_val	= null;
+					if(rva!=0 && lma!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
+//					d_val_Item.setExpanded(true);
+					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_VERDEFNUM ||
+						 v==DT_VERNEEDNUM){	// カウント
+
+					//0x04	Elf32_Sword	d_val
+					name	= "d_val";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= ELF32_SWORD_SIZE;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= getStringToInt(value, false);
+					analysis	= "";
+					analysis	+= v;
+					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
+					beforesize	= size;
+
+					EPlusViewerTreeTableRecord d_val	= null;
+					if(rva!=0 && lma!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
+//					d_val_Item.setExpanded(true);
+					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else{
 
@@ -15994,10 +17012,10 @@ public class ApplicationController implements Initializable {
 					raw		= rawAddr;
 					offset	+= beforesize;
 					if(rva!=0){
-						rva		+= beforesize;
+						rva	+= beforesize;
 					}
 					if(lma!=0){
-						lma		+= beforesize;
+						lma	+= beforesize;
 					}
 					size	= ELF32_SWORD_SIZE;
 					value	= "";
@@ -16026,14 +17044,259 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
+					//HashMapに格納
+					map.put(tag, value);
+
+					//DT_NULLならループから抜ける
+					if(v==DT_NULL){
+						break;
+					}
 				}
+
 				count++;
 			}
+
+			//参照先の作成
+			ObservableList<TreeItem<EPlusViewerTreeTableRecord>> ELF_DYNAMIC_ENTRY_Item_List 	= null;
+			Iterator<TreeItem<EPlusViewerTreeTableRecord>> ELF_DYNAMIC_ENTRY_Item_List_Iterator	= null;
+			TreeItem<EPlusViewerTreeTableRecord> ELF_DYNAMIC_ENTRY_Item							= null;
+			TreeItem<EPlusViewerTreeTableRecord> SYMTAB_Item1 									= null;
+
+			//1回目に優先して作成するものを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strVerDefVaddr	= null;
+				String strVerDefNum		= null;
+
+				String strVerNeedVaddr	= null;
+				String strVerNeedNum	= null;
+
+				String strX8664PltVaddr = null;
+				String strX8664PltSize  = null;
+				String strX8664PltEntSize = null;
+
+				switch(getStringToInt(item0.getValue().getValue(), false)){
+				case DT_NEEDED:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_SONAME:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_RPATH:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_RUNPATH:
+					strVaddr	= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					//ストリングシンボルテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, getStringToInt(item1.getValue().getValue(), false));
+					break;
+				case DT_INIT:
+					break;
+				case DT_FINI:
+					break;
+				case DT_INIT_ARRAY:
+					strVaddr	= map.get(String.format("%08X", DT_INIT_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_INIT_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_FINI_ARRAY:
+					strVaddr	= map.get(String.format("%08X", DT_FINI_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%08X", DT_FINI_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_STRTAB:
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
+					break;
+				case DT_SYMTAB:
+					strSymVaddr		= map.get(String.format("%08X", DT_SYMTAB).toUpperCase());
+					strSymEntSize	= map.get(String.format("%08X", DT_SYMENT).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
+					SYMTAB_Item1	= item1;
+					break;
+				case DT_VERDEF:
+					strVerDefVaddr	= map.get(String.format("%08X", DT_VERDEF).toUpperCase());
+					strVerDefNum	= map.get(String.format("%08X", DT_VERDEFNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_VERNEED:
+					strVerNeedVaddr	= map.get(String.format("%08X", DT_VERNEED).toUpperCase());
+					strVerNeedNum	= map.get(String.format("%08X", DT_VERNEEDNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%08X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%08X", DT_STRSZ).toUpperCase());
+					makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_X86_64_PLT:
+					strX8664PltVaddr   	= map.get(String.format("%08X", DT_X86_64_PLT).toUpperCase());
+					strX8664PltSize		= map.get(String.format("%08X", DT_X86_64_PLTSZ).toUpperCase());
+					strX8664PltEntSize	= map.get(String.format("%08X", DT_X86_64_PLTENT).toUpperCase());
+					makePltSecArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//2回目にDT_VERSYMを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVerSymVaddr	= null;
+
+				switch(getStringToInt(item0.getValue().getValue(), false)){
+				case DT_VERSYM:
+					strVerSymVaddr	= map.get(String.format("%08X", DT_VERSYM).toUpperCase());
+					makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//3回目に残りを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strRelaVaddr		= null;
+				String strRelaDataSize	= null;
+				String strRelaEntSize	= null;
+
+				String strRelVaddr		= null;
+				String strRelDataSize	= null;
+				String strRelEntSize	= null;
+
+				String strJmpRelVaddr	= null;
+				String strPltRelSize	= null;
+				String strPltRel		= null;
+
+				String strRelrVaddr		= null;
+				String strRelrDataSize	= null;
+				String strRelrEntSize	= null;
+
+				switch(getStringToInt(item0.getValue().getValue(), false)){
+				case DT_PLTGOT:
+					strVaddr	= map.get(String.format("%08X", DT_PLTGOT).toUpperCase());
+					//.rel.gotサイズ取得
+					int relgotSize	= ELF32_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
+					strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
+					if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						relgotSize += getStringToInt(strPltRelSize, false)/ELF32_RELA_SIZE * ELF32_ADDR_SIZE;
+					}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
+						relgotSize += getStringToInt(strPltRelSize, false)/ELF32_REL_SIZE * ELF32_ADDR_SIZE;
+					}
+					//System.out.println("relgotSize="+relgotSize);
+					makeDynamicEntryAddrArray(item1, strVaddr, String.format("%08X", relgotSize).toUpperCase());
+					break;
+				case DT_RELA:
+					strRelaVaddr   	= map.get(String.format("%08X", DT_RELA).toUpperCase());
+					strRelaDataSize	= map.get(String.format("%08X", DT_RELASZ).toUpperCase());
+					strRelaEntSize	= map.get(String.format("%08X", DT_RELAENT).toUpperCase());
+					if(strRelaEntSize==null){
+						strRelaEntSize	= String.format("%08X", ELF32_RELA_SIZE).toUpperCase();
+					}
+					makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
+					break;
+				case DT_REL:
+					strRelVaddr   	= map.get(String.format("%08X", DT_REL).toUpperCase());
+					strRelDataSize	= map.get(String.format("%08X", DT_RELSZ).toUpperCase());
+					strRelEntSize	= map.get(String.format("%08X", DT_RELENT).toUpperCase());
+					if(strRelEntSize==null){
+						strRelEntSize	= String.format("%08X", ELF32_REL_SIZE).toUpperCase();
+					}
+					makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
+					break;
+				case DT_JMPREL:
+					strJmpRelVaddr  = map.get(String.format("%08X", DT_JMPREL).toUpperCase());
+					strPltRelSize	= map.get(String.format("%08X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%08X", DT_PLTREL).toUpperCase());
+
+					if(getStringToInt(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						strRelaEntSize	= map.get(String.format("%08X", DT_RELAENT).toUpperCase());
+						if(strRelaEntSize==null){
+							strRelaEntSize	= String.format("%08X", ELF32_RELA_SIZE).toUpperCase();
+						}
+						makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
+					}else if(getStringToInt(strPltRel, false)==DT_REL){	//DT_RELなら
+						strRelEntSize	= map.get(String.format("%08X", DT_RELENT).toUpperCase());
+						if(strRelEntSize==null){
+							strRelEntSize	= String.format("%08X", ELF32_REL_SIZE).toUpperCase();
+						}
+						makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
+					}
+					break;
+				case DT_RELR:
+					strRelrVaddr   	= map.get(String.format("%08X", DT_RELR).toUpperCase());
+					strRelrDataSize	= map.get(String.format("%08X", DT_RELRSZ).toUpperCase());
+					strRelrEntSize	= map.get(String.format("%08X", DT_RELRENT).toUpperCase());
+					if(strRelrEntSize==null){
+						strRelrEntSize	= String.format("%08X", ELF32_RELR_SIZE).toUpperCase();
+					}
+					makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
+					break;
+				default:
+					break;
+				}
+			}
+
 		}else if(ELFCLASS==ELFCLASS64){	//64bit
 			//開始アドレス取得
 			long startAddr64	= sh.getSh_offset_long();
 			int startAddr32		= (int)startAddr64;
-
 
 			//データ取得用
 			int dataSize	= (int)sh.getSh_size_long();
@@ -16056,6 +17319,7 @@ public class ApplicationController implements Initializable {
 			String notes	= "";
 			int v			= 0;
 			long vl			= 0;
+			String tag		= null;
 
 			//オフセット
 			int startOffset	= 0;
@@ -16063,6 +17327,12 @@ public class ApplicationController implements Initializable {
 
 			//カウント
 			int count		= 0;
+
+			//データ格納用HashMap
+			HashMap<String, String> map = new HashMap<String, String>();
+
+			//シンボルテーブル
+			TreeItem<EPlusViewerTreeTableRecord> DT_SYMTAB_item	= null;
 
 			//アドレス設定
 			rawAddr			= startAddr32;
@@ -16128,6 +17398,7 @@ public class ApplicationController implements Initializable {
 				}
 				analysis	= "";
 				v			= (int)getStringToLong(value, false);
+				tag			= value;
 				switch(v){
 				case DT_NULL		:
 					analysis	+= "DT_NULL(0)";
@@ -16331,6 +17602,10 @@ public class ApplicationController implements Initializable {
 				//ELF_DYNAMIC_ENTRY名更新
 				ELF_DYNAMIC_ENTRY.setName(ELF_DYNAMIC_ENTRY.getName()+":"+analysis);
 
+				//DT_SYMTABなら保存
+				if(v==DT_SYMTAB){
+					DT_SYMTAB_item	= ELF_DYNAMIC_ENTRY_Item;
+				}
 
 				if(v==DT_NEEDED){	//シンボル名
 
@@ -16358,8 +17633,8 @@ public class ApplicationController implements Initializable {
 					}
 					analysis	= "";
 					vl			= getStringToLong(value, false);
-					analysis	+= "sh_link=0x"+sh.getSh_link_str()+"\n";
-					analysis	+= "=>"+ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sh.getSh_link_int()).getValue().getName()+"\n";
+					//analysis	+= "sh_link=0x"+sh.getSh_link_str()+"\n";
+					//analysis	+= "=>"+ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sh.getSh_link_int()).getValue().getName()+"\n";
 					analysis	+= "index=0x"+value+"\n";
 					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
 					beforesize	= size;
@@ -16376,8 +17651,8 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
-					//動的リンク用シンボルテーブルからシンボル名取得
-					makeDynamicSymbolName(d_val_Item, sh, (int)vl);
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else if(v==DT_SONAME){//共有オブジェクトの名前
 
@@ -16418,6 +17693,9 @@ public class ApplicationController implements Initializable {
 					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else if(v==DT_RPATH ||
 						 v==DT_RUNPATH){	//path
@@ -16460,6 +17738,9 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
+					//HashMapに格納
+					map.put(tag, value);
+
 				}else if(v==DT_PLTRELSZ ||
 						 v==DT_RELASZ ||
 						 v==DT_RELAENT ||
@@ -16472,7 +17753,8 @@ public class ApplicationController implements Initializable {
 						 v==DT_PREINIT_ARRAYSZ ||
 						 v==DT_RELRSZ ||
 						 v==DT_RELRENT ||
-						 v==DT_X86_64_PLTSZ){		//サイズ
+						 v==DT_X86_64_PLTSZ ||
+						 v==DT_X86_64_PLTENT){		//サイズ
 
 					//0x08	Elf64_Xword	d_val
 					name	= "d_val";
@@ -16514,7 +17796,11 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
-				}else if(v==DT_STRTAB ||
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_PLTGOT ||
+						 v==DT_STRTAB ||
 						 v==DT_SYMTAB ||
 						 v==DT_RELA ||
 						 v==DT_INIT ||
@@ -16554,6 +17840,7 @@ public class ApplicationController implements Initializable {
 						}
 					}
 					analysis	= "";
+					analysis	+= "Raw=0x"+getVaddrToFileoffset(value, false)+"\n";
 					notes		= ELF_DYNAMIC_ENTRY_d_ptr_Notes;
 					beforesize	= size;
 
@@ -16568,6 +17855,104 @@ public class ApplicationController implements Initializable {
 					TreeItem<EPlusViewerTreeTableRecord> d_ptr_Item	= new TreeItem<>(d_ptr);
 //					d_ptr_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_ptr_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_PLTREL){	//再配置エントリ型
+
+					//0x08	Elf64_Xword	d_val
+					name	= "d_val";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= ELF64_XWORD_SIZE;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= (int)getStringToLong(value, false);
+					analysis	= "";
+					if(v==DT_RELA){
+						analysis	+= "RELA(7)"+"\n";
+					}else if(v==DT_REL){
+						analysis	+= "REL(17)"+"\n";
+					}
+					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
+					beforesize	= size;
+
+					EPlusViewerTreeTableRecord d_val	= null;
+					if(rva!=0 && lma!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
+//					d_val_Item.setExpanded(true);
+					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
+
+				}else if(v==DT_VERDEFNUM ||
+						 v==DT_VERNEEDNUM){	// カウント
+
+					//0x08	Elf64_Xword	d_val
+					name	= "d_val";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= ELF64_XWORD_SIZE;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= (int)getStringToLong(value, false);
+					analysis	= "";
+					analysis	+= v;
+					notes		= ELF_DYNAMIC_ENTRY_d_val_Notes;
+					beforesize	= size;
+
+					EPlusViewerTreeTableRecord d_val	= null;
+					if(rva!=0 && lma!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						d_val	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> d_val_Item	= new TreeItem<>(d_val);
+//					d_val_Item.setExpanded(true);
+					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
+
+					//HashMapに格納
+					map.put(tag, value);
 
 				}else{
 
@@ -16609,8 +17994,255 @@ public class ApplicationController implements Initializable {
 //					d_val_Item.setExpanded(true);
 					ELF_DYNAMIC_ENTRY_Item.getChildren().add(d_val_Item);
 
+					//HashMapに格納
+					map.put(tag, value);
+
+					//DT_NULLならループから抜ける
+					if(v==DT_NULL){
+						break;
+					}
+
 				}
+
 				count++;
+			}
+
+			//参照先の作成
+			ObservableList<TreeItem<EPlusViewerTreeTableRecord>> ELF_DYNAMIC_ENTRY_Item_List 	= null;
+			Iterator<TreeItem<EPlusViewerTreeTableRecord>> ELF_DYNAMIC_ENTRY_Item_List_Iterator	= null;
+			TreeItem<EPlusViewerTreeTableRecord> ELF_DYNAMIC_ENTRY_Item							= null;
+			TreeItem<EPlusViewerTreeTableRecord> SYMTAB_Item1 									= null;
+
+			//1回目に優先して作成するものを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strVerDefVaddr	= null;
+				String strVerDefNum		= null;
+
+				String strVerNeedVaddr	= null;
+				String strVerNeedNum	= null;
+
+				String strX8664PltVaddr = null;
+				String strX8664PltSize  = null;
+				String strX8664PltEntSize = null;
+
+				switch((int)getStringToLong(item0.getValue().getValue(), false)){
+				case DT_NEEDED:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_SONAME:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_RPATH:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_RUNPATH:
+					strVaddr	= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					//ストリングテーブルからシンボル名取得
+					rtnStrVal = makeDynamicSymbolName(item1, strVaddr, strDataSize, (int)getStringToLong(item1.getValue().getValue(), false));
+					break;
+				case DT_INIT:
+					break;
+				case DT_FINI:
+					break;
+				case DT_INIT_ARRAY:
+					strVaddr	= map.get(String.format("%016X", DT_INIT_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_INIT_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_FINI_ARRAY:
+					strVaddr	= map.get(String.format("%016X", DT_FINI_ARRAY).toUpperCase());
+					strDataSize	= map.get(String.format("%016X", DT_FINI_ARRAYSZ).toUpperCase());
+					makeDynamicEntryAddrArray(item1, strVaddr, strDataSize);
+					break;
+				case DT_STRTAB:
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeDynamicEntryData(item1, strStrVaddr, strStrDataSize);
+					break;
+				case DT_SYMTAB:
+					strSymVaddr		= map.get(String.format("%016X", DT_SYMTAB).toUpperCase());
+					strSymEntSize	= map.get(String.format("%016X", DT_SYMENT).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeElfDynamicSymbolTable(item1, strSymVaddr, strSymEntSize, strStrVaddr, strStrDataSize);
+					SYMTAB_Item1	= item1;
+					break;
+				case DT_VERDEF:
+					strVerDefVaddr	= map.get(String.format("%016X", DT_VERDEF).toUpperCase());
+					strVerDefNum	= map.get(String.format("%016X", DT_VERDEFNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeVerDefTable(item1, strVerDefVaddr, strVerDefNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_VERNEED:
+					strVerNeedVaddr	= map.get(String.format("%016X", DT_VERNEED).toUpperCase());
+					strVerNeedNum	= map.get(String.format("%016X", DT_VERNEEDNUM).toUpperCase());
+					strStrVaddr		= map.get(String.format("%016X", DT_STRTAB).toUpperCase());
+					strStrDataSize	= map.get(String.format("%016X", DT_STRSZ).toUpperCase());
+					makeVerNeedTable(item1, strVerNeedVaddr, strVerNeedNum, strStrVaddr, strStrDataSize);
+					break;
+				case DT_X86_64_PLT:
+					strX8664PltVaddr   	= map.get(String.format("%016X", DT_X86_64_PLT).toUpperCase());
+					strX8664PltSize		= map.get(String.format("%016X", DT_X86_64_PLTSZ).toUpperCase());
+					strX8664PltEntSize	= map.get(String.format("%016X", DT_X86_64_PLTENT).toUpperCase());
+					makePltSecArray(item1, strX8664PltVaddr, strX8664PltSize, strX8664PltEntSize);
+					break;
+				default:
+					break;
+				}
+			}
+
+			//2回目にDT_VERSYMを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVerSymVaddr	= null;
+
+				switch((int)getStringToLong(item0.getValue().getValue(), false)){
+				case DT_VERSYM:
+					strVerSymVaddr	= map.get(String.format("%016X", DT_VERSYM).toUpperCase());
+					makeVerSymTable(item1, SYMTAB_Item1, strVerSymVaddr);
+					break;
+				default:
+					break;
+				}
+
+			}
+
+			//3回目に残りを作成
+			ELF_DYNAMIC_ENTRY_Item_List 			= item.getChildren();
+			ELF_DYNAMIC_ENTRY_Item_List_Iterator	= ELF_DYNAMIC_ENTRY_Item_List.iterator();
+			while(ELF_DYNAMIC_ENTRY_Item_List_Iterator.hasNext()){
+
+				ELF_DYNAMIC_ENTRY_Item = ELF_DYNAMIC_ENTRY_Item_List_Iterator.next();
+
+				TreeItem<EPlusViewerTreeTableRecord> item0 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(0);
+				TreeItem<EPlusViewerTreeTableRecord> item1 = ELF_DYNAMIC_ENTRY_Item.getChildren().get(1);
+
+				String strVaddr			= null;
+				String strDataSize		= null;
+				String rtnStrVal		= null;
+
+				String strStrVaddr		= null;
+				String strStrDataSize	= null;
+
+				String strSymVaddr		= null;
+				String strSymEntSize	= null;
+
+				String strRelaVaddr		= null;
+				String strRelaDataSize	= null;
+				String strRelaEntSize	= null;
+
+				String strRelVaddr		= null;
+				String strRelDataSize	= null;
+				String strRelEntSize	= null;
+
+				String strJmpRelVaddr	= null;
+				String strPltRelSize	= null;
+				String strPltRel		= null;
+
+				String strRelrVaddr		= null;
+				String strRelrDataSize	= null;
+				String strRelrEntSize	= null;
+
+				switch((int)getStringToLong(item0.getValue().getValue(), false)){
+				case DT_PLTGOT:
+					strVaddr	= map.get(String.format("%016X", DT_PLTGOT).toUpperCase());
+					//.rel.gotサイズ取得
+					long relgotSize	= ELF64_ADDR_SIZE*3;	//まずgot[0],got[1],got[2]分
+					strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
+					if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						relgotSize += getStringToLong(strPltRelSize, false)/ELF64_RELA_SIZE * ELF64_ADDR_SIZE;
+					}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
+						relgotSize += getStringToLong(strPltRelSize, false)/ELF64_REL_SIZE * ELF64_ADDR_SIZE;
+					}
+					//System.out.println("relgotSize="+relgotSize);
+					makeDynamicEntryAddrArray(item1, strVaddr, String.format("%016X", relgotSize).toUpperCase());
+					break;
+				case DT_RELA:
+					strRelaVaddr   	= map.get(String.format("%016X", DT_RELA).toUpperCase());
+					strRelaDataSize	= map.get(String.format("%016X", DT_RELASZ).toUpperCase());
+					strRelaEntSize	= map.get(String.format("%016X", DT_RELAENT).toUpperCase());
+					if(strRelaEntSize==null){
+						strRelaEntSize	= String.format("%016X", ELF64_RELA_SIZE).toUpperCase();
+					}
+					makeElfRelocationAddendTable(item1, strRelaVaddr, strRelaDataSize, strRelaEntSize, DT_SYMTAB_item);
+					break;
+				case DT_REL:
+					strRelVaddr   	= map.get(String.format("%016X", DT_REL).toUpperCase());
+					strRelDataSize	= map.get(String.format("%016X", DT_RELSZ).toUpperCase());
+					strRelEntSize	= map.get(String.format("%016X", DT_RELENT).toUpperCase());
+					if(strRelEntSize==null){
+						strRelEntSize	= String.format("%016X", ELF64_REL_SIZE).toUpperCase();
+					}
+					makeElfRelocationTable(item1, strRelVaddr, strRelDataSize, strRelEntSize, DT_SYMTAB_item);
+					break;
+				case DT_JMPREL:
+					strJmpRelVaddr  = map.get(String.format("%016X", DT_JMPREL).toUpperCase());
+					strPltRelSize	= map.get(String.format("%016X", DT_PLTRELSZ).toUpperCase());
+					strPltRel		= map.get(String.format("%016X", DT_PLTREL).toUpperCase());
+
+					if((int)getStringToLong(strPltRel, false)==DT_RELA) {	//DT_RELAなら
+						strRelaEntSize	= map.get(String.format("%016X", DT_RELAENT).toUpperCase());
+						if(strRelaEntSize==null){
+							strRelaEntSize	= String.format("%016X", ELF64_RELA_SIZE).toUpperCase();
+						}
+						makeElfRelocationAddendTable(item1, strJmpRelVaddr, strPltRelSize, strRelaEntSize, DT_SYMTAB_item);
+					}else if((int)getStringToLong(strPltRel, false)==DT_REL){	//DT_RELなら
+						strRelEntSize	= map.get(String.format("%016X", DT_RELENT).toUpperCase());
+						if(strRelEntSize==null){
+							strRelEntSize	= String.format("%016X", ELF64_REL_SIZE).toUpperCase();
+						}
+						makeElfRelocationTable(item1, strJmpRelVaddr, strPltRelSize, strRelEntSize, DT_SYMTAB_item);
+					}
+					break;
+				case DT_RELR:
+					strRelrVaddr   	= map.get(String.format("%016X", DT_RELR).toUpperCase());
+					strRelrDataSize	= map.get(String.format("%016X", DT_RELRSZ).toUpperCase());
+					strRelrEntSize	= map.get(String.format("%016X", DT_RELRENT).toUpperCase());
+					if(strRelrEntSize==null){
+						strRelrEntSize	= String.format("%016X", ELF64_RELR_SIZE).toUpperCase();
+					}
+					makeRelrTable(item1, strRelrVaddr, strRelrDataSize, strRelrEntSize);
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}

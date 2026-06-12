@@ -21,11 +21,13 @@ public class SectionHeader {
 	private int sh_offset_int		= 0;
 	private int sh_size_int			= 0;
 	private int sh_link_int			= 0;
+	private int sh_info_int			= 0;
 	private int sh_addralign_int	= 0;
 	private int sh_entsize_int		= 0;
 	private long sh_addr_long		= 0;
 	private long sh_offset_long		= 0;
 	private long sh_size_long		= 0;
+	private long sh_info_long		= 0;
 	private long sh_addralign_long	= 0;
 	private long sh_entsize_long	= 0;
 	private int bitFlag				= 0;	//0:32bit 1:64bit
@@ -321,6 +323,11 @@ public class SectionHeader {
 
 	public void setSh_info_str(String sh_info_str) {
 		this.sh_info_str = sh_info_str;
+		this.sh_info_int = getStringToInt(sh_info_str, false);
+	}
+
+	public int getSh_info_int() {
+		return sh_info_int;
 	}
 
 
