@@ -14707,37 +14707,37 @@ public class ApplicationController implements Initializable {
 				if((vl&SHF_EXECINSTR)!=0){
 					analysis	+= "SHF_EXECINSTR(0x4)"+"\n";
 				}
-				if((v&SHF_MERGE)!=0){
+				if((vl&SHF_MERGE)!=0){
 					analysis	+= "SHF_MERGE(0x10)"+"\n";
 				}
-				if((v&SHF_STRINGS)!=0){
+				if((vl&SHF_STRINGS)!=0){
 					analysis	+= "SHF_STRINGS(0x20)"+"\n";
 				}
-				if((v&SHF_INFO_LINK)!=0){
+				if((vl&SHF_INFO_LINK)!=0){
 					analysis	+= "SHF_INFO_LINK(0x40)"+"\n";
 				}
-				if((v&SHF_LINK_ORDER)!=0){
+				if((vl&SHF_LINK_ORDER)!=0){
 					analysis	+= "SHF_LINK_ORDER(0x80)"+"\n";
 				}
-				if((v&SHF_OS_NONCONFORMING)!=0){
+				if((vl&SHF_OS_NONCONFORMING)!=0){
 					analysis	+= "SHF_OS_NONCONFORMING(0x100)"+"\n";
 				}
-				if((v&SHF_GROUP)!=0){
+				if((vl&SHF_GROUP)!=0){
 					analysis	+= "SHF_GROUP(0x200)"+"\n";
 				}
-				if((v&SHF_TLS)!=0){
+				if((vl&SHF_TLS)!=0){
 					analysis	+= "SHF_TLS(0x400)"+"\n";
 				}
-				if((v&SHF_MASKOS)!=0){
+				if((vl&SHF_MASKOS)!=0){
 					analysis	+= "SHF_MASKOS(0x0ff00000)"+"\n";
 				}
-				if((v&SHF_MASKPROC)!=0){
+				if((vl&SHF_MASKPROC)!=0){
 					analysis	+= "SHF_MASKPROC(0xf0000000)"+"\n";
 				}
-				if((v&SHF_ORDERED)!=0){
+				if((vl&SHF_ORDERED)!=0){
 					analysis	+= "SHF_ORDERED(0x40000000)"+"\n";
 				}
-				if((v&SHF_EXCLUDE)!=0){
+				if((vl&SHF_EXCLUDE)!=0){
 					analysis	+= "SHF_EXCLUDE(0x80000000)"+"\n";
 				}
 				notes		= ELF_SECTION_HEADER_sh_flags_Notes;
