@@ -29,7 +29,7 @@ This tool can run on an environment that is installed Java8.
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "E+Viewer3.0.4.jar"
+    java -Xmx4g -jar "E+Viewer3.0.5.jar"
     ```
 1. Open ELF File([File]-[FileOpen])
 
@@ -47,6 +47,12 @@ This tool can run on an environment that is installed Java8.
 ![005.jpg](./image/005.jpg)
 
 ![006.jpg](./image/006.jpg)
+
+![007.jpg](./image/007.jpg)
+
+![008.jpg](./image/008.jpg)
+
+![009.jpg](./image/009.jpg)
 
 ## Additional Functions
 
