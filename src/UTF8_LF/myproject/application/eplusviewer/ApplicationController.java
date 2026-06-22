@@ -19246,7 +19246,7 @@ public class ApplicationController implements Initializable {
 				}
 
 				result	+= "\n";
-			}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_OP_AARCH64_operation){	//opcode:0xea+SubOP	DW_OP_AARCH64_operation(uleb128 SubOP)
+			}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)==(int)DW_OP_AARCH64_operation){	//opcode:0xea+SubOP	DW_OP_AARCH64_operation(uleb128 SubOP)
 				result	+= "["+ String.format("%2d", pos)+"] AARCH64_operation ";
 				pos++;
 				ULEB128Result subop	= new ULEB128Result(data, offset+pos);
