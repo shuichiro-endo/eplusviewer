@@ -938,6 +938,12 @@ public class ApplicationController implements Initializable {
 
 	private final static int DW_CFA_GNU_negative_offset_extended	= 0x2f;
 
+	private final static int DW_CFA_AARCH64_set_ra_state			= 0x2b;	//aarch64 (Alpha)
+	private final static int DW_CFA_AARCH64_negate_ra_state_with_pc	= 0x2c;	//aarch64 (Deprecated)
+	private final static int DW_CFA_AARCH64_negate_ra_state			= 0x2d; //aarch64
+
+
+
 	//DWARF Expression
 	private final static int DW_OP_addr				= 0x03;
 	private final static int DW_OP_const1u			= 0x08;
@@ -993,6 +999,8 @@ public class ApplicationController implements Initializable {
 	private final static int DW_OP_nop				= 0x96;
 	private final static int DW_OP_GNU_encoded_addr	= 0xf1;
 
+	private final static int DW_OP_AARCH64_operation	= 0xea;	//0xea+SubOP
+	private final static int DW_SUB_OP_AARCH64_sign		= 0x00;
 
 	/*
 	 * 構造体サイズ
@@ -18511,6 +18519,276 @@ public class ApplicationController implements Initializable {
 			case 31:
 				regName	+= "sp(31)";
 				break;
+			case 32:
+				regName += "pc(32)";
+				break;
+			case 33:
+				regName	+= "elr_mode(33)";
+				break;
+			case 34:
+				regName	+= "ra_sign_state(34)";
+				break;
+			case 35:
+				regName	+= "tpidrro_el0(35)";
+				break;
+			case 36:
+				regName	+= "tpidr_el0(36)";
+				break;
+			case 37:
+				regName	+= "tpidr_el1(37)";
+				break;
+			case 38:
+				regName	+= "tpidr_el2(38)";
+				break;
+			case 39:
+				regName	+= "tpidr_el3(39)";
+				break;
+			case 46:
+				regName	+= "vg(46)";
+				break;
+			case 47:
+				regName	+= "ffr(47)";
+				break;
+			case 48:
+				regName	+= "p0(48)";
+				break;
+			case 49:
+				regName	+= "p1(49)";
+				break;
+			case 50:
+				regName	+= "p2(50)";
+				break;
+			case 51:
+				regName	+= "p3(51)";
+				break;
+			case 52:
+				regName	+= "p4(52)";
+				break;
+			case 53:
+				regName	+= "p5(53)";
+				break;
+			case 54:
+				regName	+= "p6(54)";
+				break;
+			case 55:
+				regName	+= "p7(55)";
+				break;
+			case 56:
+				regName	+= "p8(56)";
+				break;
+			case 57:
+				regName	+= "p9(57)";
+				break;
+			case 58:
+				regName	+= "p10(58)";
+				break;
+			case 59:
+				regName	+= "p11(59)";
+				break;
+			case 60:
+				regName	+= "p12(60)";
+				break;
+			case 61:
+				regName	+= "p13(61)";
+				break;
+			case 62:
+				regName	+= "p14(62)";
+				break;
+			case 63:
+				regName	+= "p15(63)";
+				break;
+			case 64:
+				regName	+= "v0(64)";
+				break;
+			case 65:
+				regName	+= "v1(65)";
+				break;
+			case 66:
+				regName	+= "v2(66)";
+				break;
+			case 67:
+				regName	+= "v3(67)";
+				break;
+			case 68:
+				regName	+= "v4(68)";
+				break;
+			case 69:
+				regName	+= "v5(69)";
+				break;
+			case 70:
+				regName	+= "v6(70)";
+				break;
+			case 71:
+				regName	+= "v7(71)";
+				break;
+			case 72:
+				regName	+= "v8(72)";
+				break;
+			case 73:
+				regName	+= "v9(73)";
+				break;
+			case 74:
+				regName	+= "v10(74)";
+				break;
+			case 75:
+				regName	+= "v11(75)";
+				break;
+			case 76:
+				regName	+= "v12(76)";
+				break;
+			case 77:
+				regName	+= "v13(77)";
+				break;
+			case 78:
+				regName	+= "v14(78)";
+				break;
+			case 79:
+				regName	+= "v15(79)";
+				break;
+			case 80:
+				regName	+= "v16(80)";
+				break;
+			case 81:
+				regName	+= "v17(81)";
+				break;
+			case 82:
+				regName	+= "v18(82)";
+				break;
+			case 83:
+				regName	+= "v19(83)";
+				break;
+			case 84:
+				regName	+= "v20(84)";
+				break;
+			case 85:
+				regName	+= "v21(85)";
+				break;
+			case 86:
+				regName	+= "v22(86)";
+				break;
+			case 87:
+				regName	+= "v23(87)";
+				break;
+			case 88:
+				regName	+= "v24(88)";
+				break;
+			case 89:
+				regName	+= "v25(89)";
+				break;
+			case 90:
+				regName	+= "v26(90)";
+				break;
+			case 91:
+				regName	+= "v27(91)";
+				break;
+			case 92:
+				regName	+= "v28(92)";
+				break;
+			case 93:
+				regName	+= "v29(93)";
+				break;
+			case 94:
+				regName	+= "v30(94)";
+				break;
+			case 95:
+				regName	+= "v31(95)";
+				break;
+			case 96:
+				regName	+= "z0(96)";
+				break;
+			case 97:
+				regName	+= "z1(97)";
+				break;
+			case 98:
+				regName	+= "z2(98)";
+				break;
+			case 99:
+				regName	+= "z3(99)";
+				break;
+			case 100:
+				regName	+= "z4(100)";
+				break;
+			case 101:
+				regName	+= "z5(101)";
+				break;
+			case 102:
+				regName	+= "z6(102)";
+				break;
+			case 103:
+				regName	+= "z7(103)";
+				break;
+			case 104:
+				regName	+= "z8(104)";
+				break;
+			case 105:
+				regName	+= "z9(105)";
+				break;
+			case 106:
+				regName	+= "z10(106)";
+				break;
+			case 107:
+				regName	+= "z11(107)";
+				break;
+			case 108:
+				regName	+= "z12(108)";
+				break;
+			case 109:
+				regName	+= "z13(109)";
+				break;
+			case 110:
+				regName	+= "z14(110)";
+				break;
+			case 111:
+				regName	+= "z15(111)";
+				break;
+			case 112:
+				regName	+= "z16(112)";
+				break;
+			case 113:
+				regName	+= "z17(113)";
+				break;
+			case 114:
+				regName	+= "z18(114)";
+				break;
+			case 115:
+				regName	+= "z19(115)";
+				break;
+			case 116:
+				regName	+= "z20(116)";
+				break;
+			case 117:
+				regName	+= "z21(117)";
+				break;
+			case 118:
+				regName	+= "z22(118)";
+				break;
+			case 119:
+				regName	+= "z23(119)";
+				break;
+			case 120:
+				regName	+= "z24(120)";
+				break;
+			case 121:
+				regName	+= "z25(121)";
+				break;
+			case 122:
+				regName	+= "z26(122)";
+				break;
+			case 123:
+				regName	+= "z27(123)";
+				break;
+			case 124:
+				regName	+= "z28(124)";
+				break;
+			case 125:
+				regName	+= "z29(125)";
+				break;
+			case 126:
+				regName	+= "z30(126)";
+				break;
+			case 127:
+				regName	+= "z31(127)";
+				break;
 			default:
 				regName	+= ordinal;
 				break;
@@ -18806,13 +19084,13 @@ public class ApplicationController implements Initializable {
 				pos					+= lit.getSize();
 				result				+= lit.getValue()+"\n";
 			}else if((byte)data[offset+pos]==(byte)DW_OP_regx){	//opcode:0x90	DW_OP_regx(uleb128 Reg)
-				result	+= "["+ String.format("%2d", pos)+"] "+"regx";
+				result	+= "["+ String.format("%2d", pos)+"] "+"regx ";
 				pos++;
 				ULEB128Result reg	= new ULEB128Result(data, offset+pos);
 				pos					+= reg.getSize();
 				result				+= getDwRegistryName((int)reg.getValue())+"\n";
 			}else if((byte)data[offset+pos]==(byte)DW_OP_bregx){	//opcode:0x92	DW_OP_bregx(uleb128 Reg, sleb128 Lit)
-				result	+= "["+ String.format("%2d", pos)+"] "+"bregx";
+				result	+= "["+ String.format("%2d", pos)+"] "+"bregx ";
 				pos++;
 				ULEB128Result reg	= new ULEB128Result(data, offset+pos);
 				pos					+= reg.getSize();
@@ -18892,11 +19170,11 @@ public class ApplicationController implements Initializable {
 				}
 
 				if(ptr_encoding_type==DW_EH_PE_ULEB128){
-					uleb		= new ULEB128Result(data, offset);
+					uleb		= new ULEB128Result(data, offset+pos);
 					vl			= uleb.getValue();
 					ptr_size	= uleb.getSize();
 				}else if(ptr_encoding_type==DW_EH_PE_SLEB128){
-					sleb		= new SLEB128Result(data, offset);
+					sleb		= new SLEB128Result(data, offset+pos);
 					vl			= sleb.getValue();
 					ptr_size	= sleb.getSize();
 				}
@@ -18968,7 +19246,22 @@ public class ApplicationController implements Initializable {
 				}
 
 				result	+= "\n";
+			}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_OP_AARCH64_operation){	//opcode:0xea+SubOP	DW_OP_AARCH64_operation(uleb128 SubOP)
+				result	+= "["+ String.format("%2d", pos)+"] AARCH64_operation ";
+				pos++;
+				ULEB128Result subop	= new ULEB128Result(data, offset+pos);
+				pos					+= subop.getSize();
+
+				if(subop.getValue()==DW_SUB_OP_AARCH64_sign){	//opcode:0x00	DW_SUB_OP_AARCH64_sign(uleb128 pointer_key_signing_operation)
+					ULEB128Result signing_op	= new ULEB128Result(data, offset+pos);
+					pos							+= signing_op.getSize();
+					result						+= "AARCH64_sign 0x"+String.format("%02X", (byte)signing_op.getValue()).toUpperCase()+"\n";
+				}else{
+					result	+= "unknown sub opcode:0x"+String.format("%02X", (byte)data[offset+pos-subop.getSize()]).toUpperCase()+"\n";
+					break;
+				}
 			}else{
+				result	+= "unknown opcode:0x"+String.format("%02X", (byte)data[offset+pos]).toUpperCase()+"\n";
 				break;
 			}
 		}
@@ -21157,6 +21450,7 @@ public class ApplicationController implements Initializable {
 			boolean cie_L_flag	= false;
 			boolean cie_S_flag	= false;
 			boolean cie_B_flag	= false;
+			boolean cie_G_flag	= false;	//aarch64
 
 			//エンコーディングとサイズ
 			int fde_ptr_encoding_type		= 0;
@@ -21192,6 +21486,7 @@ public class ApplicationController implements Initializable {
 				cie_L_flag	= false;
 				cie_S_flag	= false;
 				cie_B_flag	= false;
+				cie_G_flag	= false;
 
 				//cie
 				name		= "COMMON_INFORMATION_ENTRY";
@@ -21412,6 +21707,10 @@ public class ApplicationController implements Initializable {
 				if(cie_aug_string.contains("B")){
 					cie_B_flag		= true;
 					analysis	+= "B ";
+				}
+				if(cie_aug_string.contains("G")){
+					cie_G_flag		= true;
+					analysis	+= "G ";
 				}
 				notes		= EH_FRAME_CIE_aug_string_Notes;
 				beforesize	= size;
@@ -22459,7 +22758,21 @@ public class ApplicationController implements Initializable {
 						ULEB128Result off	= new ULEB128Result(data, offset+pos);
 						pos					+= off.getSize();
 						analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
+					}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state){	//opcode:0x2b	DW_CFA_AARCH64_negate_ra_state
+						pos++;
+						analysis			+= "AARCH64_negate_ra_state\n";
+					}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state_with_pc){	//opcode:0x2c	DW_CFA_AARCH64_negate_ra_state_with_pc
+						pos++;
+						analysis			+= "AARCH64_negate_ra_state_with_pc\n";
+					}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_set_ra_state){	//opcode:0x2d	DW_CFA_AARCH64_set_ra_state(ULEB128 ra_state, SLEB128 offset)
+						pos++;
+						ULEB128Result ra_state	= new ULEB128Result(data, offset+pos);
+						pos						+= ra_state.getSize();
+						ULEB128Result off		= new ULEB128Result(data, offset+pos);
+						pos						+= off.getSize();
+						analysis				+= "AARCH64_set_ra_state "+Long.toUnsignedString(ra_state.getValue())+" "+off.getValue()*cie_code_align+"\n";
 					}else{
+						analysis			+= "unknown opcode:0x"+String.format("%02X", (byte)data[offset+pos]).toUpperCase()+"\n";
 						break;
 					}
 				}
@@ -23211,7 +23524,21 @@ public class ApplicationController implements Initializable {
 							ULEB128Result off	= new ULEB128Result(data, offset+pos);
 							pos					+= off.getSize();
 							analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
+						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state){	//opcode:0x2b	DW_CFA_AARCH64_negate_ra_state
+							pos++;
+							analysis			+= "AARCH64_negate_ra_state\n";
+						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state_with_pc){	//opcode:0x2c	DW_CFA_AARCH64_negate_ra_state_with_pc
+							pos++;
+							analysis			+= "AARCH64_negate_ra_state_with_pc\n";
+						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_set_ra_state){	//opcode:0x2d	DW_CFA_AARCH64_set_ra_state(ULEB128 ra_state, SLEB128 offset)
+							pos++;
+							ULEB128Result ra_state	= new ULEB128Result(data, offset+pos);
+							pos						+= ra_state.getSize();
+							ULEB128Result off		= new ULEB128Result(data, offset+pos);
+							pos						+= off.getSize();
+							analysis				+= "AARCH64_set_ra_state "+Long.toUnsignedString(ra_state.getValue())+" "+off.getValue()*cie_code_align+"\n";
 						}else{
+							analysis			+= "unknown opcode:0x"+String.format("%02X", (byte)data[offset+pos]).toUpperCase()+"\n";
 							break;
 						}
 					}

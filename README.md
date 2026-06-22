@@ -29,7 +29,7 @@ This tool can run on an environment that is installed Java8.
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "E+Viewer3.0.5.jar"
+    java -Xmx4g -jar "E+Viewer3.0.6.jar"
     ```
 1. Open ELF File([File]-[FileOpen])
 
