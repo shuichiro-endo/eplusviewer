@@ -20,11 +20,20 @@ Do not open a file over 1MB.<br>
 
 ## Installation
 
-This tool can run on an environment that is installed Java8.
+This tool (.jar file) can run in an environment where Java8 is installed.
 
 - Java version 1.8.0_60(JRE)
     - <font style="color:blue">Note: This tool uses JavaFX 8.</font>
 
+You can build this source code using OpenJDK 26 and OpenJFX 26.
+```
+cd src\UTF8_LF
+
+javac -Xlint:deprecation --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls,javafx.fxml myproject\application\eplusviewer\Main.java myproject\application\eplusviewer\ApplicationController.java myproject\application\eplusviewer\BinTableRecord.java myproject\application\eplusviewer\DisasmController.java myproject\application\eplusviewer\DumpController.java myproject\application\eplusviewer\DumpTableRecord.java myproject\application\eplusviewer\EPlusViewerTreeTableRecord.java myproject\application\eplusviewer\ProgramHeader.java myproject\application\eplusviewer\SectionHeader.java myproject\application\eplusviewer\SLEB128Result.java myproject\application\eplusviewer\ULEB128Result.java
+
+# run
+java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls,javafx.fxml myproject.application.eplusviewer.Main
+```
 
 ## Example
 1. Run
