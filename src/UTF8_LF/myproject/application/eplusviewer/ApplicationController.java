@@ -15310,7 +15310,7 @@ public class ApplicationController implements Initializable {
 					sectionHeaderCount++;
 				}
 
-				//3回目に残りを作成
+				//4回目に残りを作成
 				ELF_SECTION_HEADER_TABLE_Item_List 		= ELF_SECTION_HEADER_TABLE_Item.getChildren();
 				ELF_SECTION_HEADER_TABLE_Item_Iterator	= ELF_SECTION_HEADER_TABLE_Item_List.iterator();
 				ELF_SECTION_HEADER_Item					= null;
@@ -19272,100 +19272,1426 @@ public class ApplicationController implements Initializable {
 	private void makeEhFrame(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
 
 		if(ELFCLASS==ELFCLASS32){	//32bit
-			//開始アドレス取得
-			int startAddr32	= sh.getSh_offset_int();
+			makeEhFrame32(item, sh);
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			makeEhFrame64(item, sh);
+		}
 
-			//データ取得用
-			int dataSize	= sh.getSh_size_int();
-			byte[] data		= null;
+	}
 
-			//データ取得
-			data	= getBintableBytes(startAddr32, dataSize);
+	private void makeEhFrame32(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
 
-			//設定用変数
-			String name		= "";
-			int raw			= 0;
-			int rawAddr		= 0;
-			int rva			= 0;
-			int startRva	= 0;
-			int lma			= 0;
-			int offset		= 0;
-			int beforesize	= 0;
-			int size		= 0;
-			String value	= "";
-			String analysis = "";
-			String notes	= "";
-			byte vb			= 0;
-			int v			= 0;
-			long vl			= 0;
+		//開始アドレス取得
+		int startAddr32	= sh.getSh_offset_int();
 
-			//オフセット
-			int startOffset	= 0;
-			int baseOffset	= 0;
+		//データ取得用
+		int dataSize	= sh.getSh_size_int();
+		byte[] data		= null;
 
-			//保存用
-			ULEB128Result uleb		= null;
-			SLEB128Result sleb		= null;
-			int cie_length			= 0;
-			int cie_version			= 0;
-			String cie_aug_string	= "";
-			int cie_addr_size		= 0;
-			int cie_segment_size	= 0;
-			int cie_z_flag_length	= 0;
-			int fde_length			= 0;
-			int fde_z_flag_length	= 0;
-			int cie_code_align		= 0;
-			int cie_data_align		= 0;
-			int fde_func_start_addr	= 0;
-			int fde_func_length		= 0;
-			int loc_addr			= 0;
+		//データ取得
+		data	= getBintableBytes(startAddr32, dataSize);
 
-			//フラグ
-			boolean cie_eh_flag	= false;
-			boolean cie_z_flag	= false;
-			boolean cie_R_flag	= false;
-			boolean cie_P_flag	= false;
-			boolean cie_L_flag	= false;
-			boolean cie_S_flag	= false;
-			boolean cie_B_flag	= false;
+		//設定用変数
+		String name		= "";
+		int raw			= 0;
+		int rawAddr		= 0;
+		int rva			= 0;
+		int startRva	= 0;
+		int lma			= 0;
+		int offset		= 0;
+		int beforesize	= 0;
+		int size		= 0;
+		String value	= "";
+		String analysis = "";
+		String notes	= "";
+		byte vb			= 0;
+		int v			= 0;
+		long vl			= 0;
 
-			//エンコーディングとサイズ
-			int fde_ptr_encoding_type		= 0;
-			int fde_ptr_encoding_rel		= 0;
-			int fde_ptr_size				= 0;
-			int ptr_encoding_type			= 0;
-			int ptr_encoding_rel			= 0;
-			int ptr_size					= 0;
-			int lsda_ptr_encoding_type		= 0;
-			int lsda_ptr_encoding_rel		= 0;
-			int lsda_ptr_size				= 0;
+		//オフセット
+		int startOffset	= 0;
+		int baseOffset	= 0;
 
-			//カウント
-			int count			= 0;
-			int pos				= 0;
+		//保存用
+		ULEB128Result uleb		= null;
+		SLEB128Result sleb		= null;
+		int cie_length			= 0;
+		int cie_version			= 0;
+		String cie_aug_string	= "";
+		int cie_addr_size		= 0;
+		int cie_segment_size	= 0;
+		int cie_z_flag_length	= 0;
+		int fde_length			= 0;
+		int fde_z_flag_length	= 0;
+		int cie_code_align		= 0;
+		int cie_data_align		= 0;
+		int fde_func_start_addr	= 0;
+		int fde_func_length		= 0;
+		int loc_addr			= 0;
 
-			//アドレス設定
-			rawAddr			= startAddr32;
-			rva				= sh.getSh_addr_int();
-			startRva		= rva;
-			String strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
-			if(strLma!=null){
-				lma			= getStringToInt(strLma, false);
+		//フラグ
+		boolean cie_eh_flag	= false;
+		boolean cie_z_flag	= false;
+		boolean cie_R_flag	= false;
+		boolean cie_P_flag	= false;
+		boolean cie_L_flag	= false;
+		boolean cie_S_flag	= false;
+		boolean cie_B_flag	= false;
+
+		//エンコーディングとサイズ
+		int fde_ptr_encoding_type		= 0;
+		int fde_ptr_encoding_rel		= 0;
+		int fde_ptr_size				= 0;
+		int ptr_encoding_type			= 0;
+		int ptr_encoding_rel			= 0;
+		int ptr_size					= 0;
+		int lsda_ptr_encoding_type		= 0;
+		int lsda_ptr_encoding_rel		= 0;
+		int lsda_ptr_size				= 0;
+
+		//カウント
+		int count			= 0;
+		int pos				= 0;
+
+		//アドレス設定
+		rawAddr			= startAddr32;
+		rva				= sh.getSh_addr_int();
+		startRva		= rva;
+		String strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
+		if(strLma!=null){
+			lma			= getStringToInt(strLma, false);
+		}
+
+
+		while(count<dataSize){
+			//フラグリセット
+			cie_eh_flag	= false;
+			cie_z_flag	= false;
+			cie_R_flag	= false;
+			cie_P_flag	= false;
+			cie_L_flag	= false;
+			cie_S_flag	= false;
+			cie_B_flag	= false;
+
+			//cie
+			name		= "COMMON_INFORMATION_ENTRY";
+			rawAddr		+= beforesize;
+			raw			= rawAddr;
+			offset		+= beforesize;
+			if(rva!=0){
+				rva		+= beforesize;
+			}
+			if(lma!=0){
+				lma		+= beforesize;
+			}
+			size		= 0;
+			value		= "";
+			analysis	= "";
+			notes		= EH_FRAME_CIE_Notes;
+			beforesize	= 0;
+			baseOffset	= offset;
+
+			EPlusViewerTreeTableRecord EH_FRAME_CIE	= null;
+			if(rva!=0 && lma!=0){
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_CIE_Item 	= new TreeItem<>(EH_FRAME_CIE);
+//			EH_FRAME_CIE_Item.setExpanded(true);
+
+
+			//0x00	UINT32_T	length
+			name	= "length";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= UINT32_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			v			= getStringToInt(value, false);
+			cie_length	= v;
+			analysis	= "";
+			analysis	+= v+" bytes";
+			notes		= EH_FRAME_CIE_length_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord length	= null;
+			if(rva!=0 && lma!=0){
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> length_Item	= new TreeItem<>(length);
+//			length_Item.setExpanded(true);
+
+			// cie_lengthが0ならループから抜ける
+			if(cie_length == 0){
+				break;
+			}
+
+			item.getChildren().add(EH_FRAME_CIE_Item);
+			EH_FRAME_CIE_Item.getChildren().add(length_Item);
+
+			//サイズをアップデート
+			EH_FRAME_CIE.setSize(String.format("%08X", cie_length+UINT32_T).toUpperCase());
+
+
+			//0x04	INT32_T	cie_id
+			name	= "cie_id";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= INT32_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			v			= getStringToInt(value, false);
+			analysis	= "";
+			analysis	+= v;
+			notes		= EH_FRAME_CIE_cie_id_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord cie_id	= null;
+			if(rva!=0 && lma!=0){
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> cie_id_Item	= new TreeItem<>(cie_id);
+//			cie_id_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(cie_id_Item);
+
+
+			//0x08	UINT8_T	version
+			name	= "version";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= UINT8_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			vb			= data[offset+size-1];
+			cie_version	= vb;
+			analysis	= "";
+			analysis	+= vb;
+			notes		= EH_FRAME_CIE_version_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord version	= null;
+			if(rva!=0 && lma!=0){
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> version_Item	= new TreeItem<>(version);
+//			version_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(version_Item);
+
+
+			//0x09	char	aug_string[]
+			name	= "aug_string";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			cie_aug_string	=	"";
+			size=0;
+			while(data[offset+size]!='\0'){
+				cie_aug_string	+= (char)data[offset+size];
+				size++;
+			}
+			size++;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			analysis	= "";
+			analysis	+= "flag=";
+			if(cie_aug_string.contains("eh")){
+				cie_eh_flag		= true;
+				analysis	+= "eh ";
+			}
+			if(cie_aug_string.contains("z")){
+				cie_z_flag		= true;
+				analysis	+= "z ";
+			}
+			if(cie_aug_string.contains("P")){
+				cie_P_flag		= true;
+				analysis	+= "P ";
+			}
+			if(cie_aug_string.contains("L")){
+				cie_L_flag		= true;
+				analysis	+= "L ";
+			}
+			if(cie_aug_string.contains("R")){
+				cie_R_flag		= true;
+				analysis	+= "R ";
+			}
+			if(cie_aug_string.contains("S")){
+				cie_S_flag		= true;
+				analysis	+= "S ";
+			}
+			if(cie_aug_string.contains("B")){
+				cie_B_flag		= true;
+				analysis	+= "B ";
+			}
+
+			notes		= EH_FRAME_CIE_aug_string_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord aug_string	= null;
+			if(rva!=0 && lma!=0){
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> aug_string_Item	= new TreeItem<>(aug_string);
+//			aug_string_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(aug_string_Item);
+
+
+			if(cie_eh_flag){
+				//0xXX	void*	eh_ptr
+				name	= "eh_ptr";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= ELF32_ADDR_SIZE;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= EH_FRAME_CIE_eh_ptr_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord eh_ptr	= null;
+				if(rva!=0 && lma!=0){
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> eh_ptr_Item	= new TreeItem<>(eh_ptr);
+//				eh_ptr_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(eh_ptr_Item);
 			}
 
 
-			while(count<dataSize){
-				//フラグリセット
-				cie_eh_flag	= false;
-				cie_z_flag	= false;
-				cie_R_flag	= false;
-				cie_P_flag	= false;
-				cie_L_flag	= false;
-				cie_S_flag	= false;
-				cie_B_flag	= false;
+			if(cie_version>=4){
+				//0xXX	UINT8_T	addr_size
+				name	= "addr_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				cie_addr_size	= vb;
+				analysis		= "";
+				analysis		+= vb+" bytes";
+				notes			= EH_FRAME_CIE_addr_size_Notes;
+				beforesize		= size;
+				count			+= size;
 
-				//cie
-				name		= "COMMON_INFORMATION_ENTRY";
+				EPlusViewerTreeTableRecord addr_size	= null;
+				if(rva!=0 && lma!=0){
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> addr_size_Item	= new TreeItem<>(addr_size);
+//				addr_size_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(addr_size_Item);
+
+
+				//0xXX	UINT8_T	segment_size
+				name	= "segment_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb					= data[offset+size-1];
+				cie_segment_size	= vb;
+				analysis			= "";
+				analysis			+= vb+" bytes";
+				notes				= EH_FRAME_CIE_segment_size_Notes;
+				beforesize			= size;
+				count				+= size;
+
+				EPlusViewerTreeTableRecord segment_size	= null;
+				if(rva!=0 && lma!=0){
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> segment_size_Item	= new TreeItem<>(segment_size);
+//				segment_size_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(segment_size_Item);
+			}
+
+
+			//0xXX	uleb128	code_align
+			name	= "code_align";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			uleb	= new ULEB128Result(data, offset);
+			v		= (int)uleb.getValue();
+			size	= uleb.getSize();
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			cie_code_align	= v;
+			analysis	= "";
+			analysis	+= Integer.toUnsignedString(v);
+			notes		= EH_FRAME_CIE_code_align_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord code_align	= null;
+			if(rva!=0 && lma!=0){
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> code_align_Item	= new TreeItem<>(code_align);
+//			code_align_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(code_align_Item);
+
+
+			//0xXX	sleb128	data_align
+			name	= "data_align";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			sleb	= new SLEB128Result(data, offset);
+			v		= (int)sleb.getValue();
+			size	= sleb.getSize();
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			cie_data_align	= v;
+			analysis	= "";
+			analysis	+= v;
+			notes		= EH_FRAME_CIE_data_align_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord data_align	= null;
+			if(rva!=0 && lma!=0){
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> data_align_Item	= new TreeItem<>(data_align);
+//			data_align_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(data_align_Item);
+
+
+			if(cie_version==1){
+				//0xXX	UINT8_T	return_address_ordinal
+				name	= "return_address_ordinal";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				analysis	+= Integer.toUnsignedString(vb);
+				notes		= EH_FRAME_CIE_return_address_ordinal_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord return_address_ordinal	= null;
+				if(rva!=0 && lma!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
+//				return_address_ordinal_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
+			}else{
+				//0xXX	uleb128	return_address_ordinal
+				name	= "return_address_ordinal";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				uleb	= new ULEB128Result(data, offset);
+				v		= (int)uleb.getValue();
+				size	= uleb.getSize();
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				analysis	+= Integer.toUnsignedString(v);
+				notes		= EH_FRAME_CIE_return_address_ordinal_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord return_address_ordinal	= null;
+				if(rva!=0 && lma!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
+//				return_address_ordinal_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
+			}
+
+
+			if(cie_z_flag){
+				//0xXX	aug_operands[] z_flag	uleb128	length
+				name	= "aug_operands_z_flag_length";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				uleb	= new ULEB128Result(data, offset);
+				v		= (int)uleb.getValue();
+				size	= uleb.getSize();
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				cie_z_flag_length	= v;
+				analysis	= "";
+				analysis	+= v+" bytes";
+				notes		= EH_FRAME_CIE_aug_operands_z_flag_length_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_z_flag_length	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_z_flag_length_Item	= new TreeItem<>(aug_operands_z_flag_length);
+//				aug_operands_z_flag_length_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_z_flag_length_Item);
+			}
+
+
+			if(cie_P_flag){
+				//0xXX	aug_operands[] P_flag	uint8_t	ptr_encoding
+				name	= "aug_operands_P_flag_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis			+= "absptr(0x0)";
+					ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis			+= "uleb128(0x1)";
+					ptr_encoding_type	= DW_EH_PE_ULEB128;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis			+= "udata2(0x2)";
+					ptr_encoding_type	= DW_EH_PE_UDATA2;
+					ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis			+= "udata4(0x3)";
+					ptr_encoding_type	= DW_EH_PE_UDATA4;
+					ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis			+= "udata8(0x4)";
+					ptr_encoding_type	= DW_EH_PE_UDATA8;
+					ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis			+= "sleb128(0x9)";
+					ptr_encoding_type	= DW_EH_PE_SLEB128;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis			+= "sdata2(0xa)";
+					ptr_encoding_type	= DW_EH_PE_SDATA2;
+					ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis			+= "sdata4(0xb)";
+					ptr_encoding_type	= DW_EH_PE_SDATA4;
+					ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis			+= "sdata8(0xc)";
+					ptr_encoding_type	= DW_EH_PE_SDATA8;
+					ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis			+= ", pcrel(0x10)";
+					ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis			+= ", textrel(0x20)";
+					ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis			+= ", datarel(0x30)";
+					ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis			+= ", funcrel(0x40)";
+					ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis			+= ", aligned(0x50)";
+					ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes		= EH_FRAME_CIE_aug_operands_P_flag_ptr_encoding_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_P_flag_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_ptr_encoding_Item	= new TreeItem<>(aug_operands_P_flag_ptr_encoding);
+//				aug_operands_P_flag_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_ptr_encoding_Item);
+
+
+				//0xXX	aug_operands[] P_flag	uint8_t	personality_ptr[]
+				name	= "aug_operands_P_flag_personality_ptr";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				if(ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb		= new ULEB128Result(data, offset);
+					v			= (int)uleb.getValue();
+					ptr_size	= uleb.getSize();
+				}else if(ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb		= new SLEB128Result(data, offset);
+					v			= (int)sleb.getValue();
+					ptr_size	= sleb.getSize();
+				}
+				size	= ptr_size;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				if(ptr_encoding_type==DW_EH_PE_ULEB128 || ptr_encoding_type==DW_EH_PE_SLEB128){
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA2 || ptr_encoding_type==DW_EH_PE_SDATA2){
+					v	= getStringToInt(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA4 || ptr_encoding_type==DW_EH_PE_SDATA4){
+					v	= getStringToInt(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA8 || ptr_encoding_type==DW_EH_PE_SDATA8){
+					vl	= getStringToLong(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}
+				notes		= EH_FRAME_CIE_aug_operands_P_flag_personality_ptr_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_P_flag_personality_ptr	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_personality_ptr_Item	= new TreeItem<>(aug_operands_P_flag_personality_ptr);
+//				aug_operands_P_flag_personality_ptr_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_personality_ptr_Item);
+			}
+
+
+			if(cie_L_flag){
+				//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
+				name	= "aug_operands_L_flag_lsda_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis				+= "absptr(0x0)";
+					lsda_ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis				+= "uleb128(0x1)";
+					lsda_ptr_encoding_type	= DW_EH_PE_ULEB128;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis				+= "udata2(0x2)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA2;
+					lsda_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis				+= "udata4(0x3)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA4;
+					lsda_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis				+= "udata8(0x4)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA8;
+					lsda_ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis				+= "sleb128(0x9)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SLEB128;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis				+= "sdata2(0xa)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA2;
+					lsda_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis				+= "sdata4(0xb)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA4;
+					lsda_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis				+= "sdata8(0xc)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA8;
+					lsda_ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis				+= ", pcrel(0x10)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis				+= ", textrel(0x20)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis				+= ", datarel(0x30)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis				+= ", funcrel(0x40)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis				+= ", aligned(0x50)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes		= EH_FRAME_CIE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_L_flag_lsda_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(aug_operands_L_flag_lsda_ptr_encoding);
+//				aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_L_flag_lsda_ptr_encoding_Item);
+			}
+
+
+			if(cie_R_flag){
+				//0xXX	aug_operands[] R_flag	uint8_t	fde_ptr_encoding
+				name	= "aug_operands_R_flag_fde_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis		+= "absptr(0x0)";
+					fde_ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis		+= "uleb128(0x1)";
+					fde_ptr_encoding_type	= DW_EH_PE_ULEB128;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis		+= "udata2(0x2)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA2;
+					fde_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis		+= "udata4(0x3)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA4;
+					fde_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis		+= "udata8(0x4)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA8;
+					fde_ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis		+= "sleb128(0x9)";
+					fde_ptr_encoding_type	= DW_EH_PE_SLEB128;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis		+= "sdata2(0xa)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA2;
+					fde_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis		+= "sdata4(0xb)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA4;
+					fde_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis		+= "sdata8(0xc)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA8;
+					fde_ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis				+= ", pcrel(0x10)";
+					fde_ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis				+= ", textrel(0x20)";
+					fde_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis				+= ", datarel(0x30)";
+					fde_ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis				+= ", funcrel(0x40)";
+					fde_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis				+= ", aligned(0x50)";
+					fde_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes		= EH_FRAME_CIE_aug_operands_R_flag_fde_ptr_encoding_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_R_flag_fde_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_R_flag_fde_ptr_encoding_Item	= new TreeItem<>(aug_operands_R_flag_fde_ptr_encoding);
+//				aug_operands_R_flag_fde_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_R_flag_fde_ptr_encoding_Item);
+			}
+
+
+			//0xXX	uint8_t	dw_cfa_bytecode[]
+			name	= "dw_cfa_bytecode";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= cie_length+UINT32_T-(offset-baseOffset);
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			analysis	= "";
+			pos			= 0;
+			loc_addr	= fde_func_start_addr;
+			while(pos<size){
+				if((byte)data[offset+pos]==(byte)DW_CFA_set_loc){	//opcode:0x01	DW_CFA_set_loc(uint8_t Ptr[])
+					pos++;
+					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+						SLEB128Result ptr	= new SLEB128Result(data, offset+pos);
+						pos					+= ptr.getSize();
+						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+							loc_addr	= (int)(rva+ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							loc_addr	= (int)(ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							loc_addr	= (int)(startRva+ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						v	= getStringToInt(strPtr, false);
+						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+							loc_addr	= (int)(rva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							loc_addr	= (int)(v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							loc_addr	= (int)(startRva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						v	= getStringToInt(strPtr, false);
+						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+							loc_addr	= (int)(rva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							loc_addr	= (int)(v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							loc_addr	= (int)(startRva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						vl	= getStringToLong(strPtr, false);
+						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+							loc_addr	= (int)(rva+vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							loc_addr	= (int)(vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
+						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							loc_addr	= (int)(startRva+vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}
+				}else if((byte)data[offset+pos]>=(byte)DW_CFA_advance_loc && (byte)data[offset+pos]<=(byte)(DW_CFA_advance_loc+0x3f)){	//opcode:0x40+Off	DW_CFA_advance_loc
+					int off		= 0;
+					off			= (int)((data[offset+pos]-DW_CFA_advance_loc)&0xff);
+					loc_addr	+= off*cie_code_align;
+					pos++;
+					analysis	+= "advance_loc "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc1){	//opcode:0x02	DW_CFA_advance_loc1(uint8_t Off)
+					pos++;
+					int off		= (int)(data[offset+pos]&0xff);
+					pos			+= UINT8_T;
+					loc_addr	+= off*cie_code_align;
+					analysis	+= "advance_loc1 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc2){	//opcode:0x03	DW_CFA_advance_loc2(uint16_t Off)
+					pos++;
+					String strOff	= "";
+					for(int i=offset+pos+UINT16_T-1; i>=offset+pos; i--){
+						strOff	+= String.format("%02X", data[i]).toUpperCase();
+					}
+					int off		= getStringToInt(strOff, false);
+					loc_addr	+= off*cie_code_align;
+					pos			+= UINT16_T;
+					analysis	+= "advance_loc2 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc4){	//opcode:0x04	DW_CFA_advance_loc4(uint32_t Off)
+					pos++;
+					String strOff	= "";
+					for(int i=offset+pos+UINT32_T-1; i>=offset+pos; i--){
+						strOff	+= String.format("%02X", data[i]).toUpperCase();
+					}
+					int off	= getStringToInt(strOff, false);
+					loc_addr	+= off*cie_code_align;
+					pos			+= UINT32_T;
+					analysis	+= "advance_loc4 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa){	//opcode:0x0c	DW_CFA_def_cfa(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_sf){	//opcode:0x12	DW_CFA_def_cfa_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_sf "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+")\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_register){	//opcode:0x0d	DW_CFA_def_cfa_register(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "def_cfa_register "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset){	//opcode:0x0e	DW_CFA_def_cfa_offset(uleb128 Off)
+					pos++;
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_offset "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset_sf){	//opcode:0x13	DW_CFA_def_cfa_offset_sf(sleb128 Off)
+					pos++;
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_offset_sf "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_expression){	//opcode:0x0f	DW_CFA_def_cfa_expression(uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "def_cfa_expression "+len.getValue()+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "undefined "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==DW_CFA_same_value){	//opcode:0x08	DW_CFA_same_value(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "same_value "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if(eMachine==EM_386 && (int)(data[offset+pos]&0xff)>=(int)(DW_CFA_offset) && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x8)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
+					pos++;
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended){	//opcode:0x05		DW_CFA_offset_extended(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended_sf){	//opcode:0x11	DW_CFA_offset_extended_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset_extended_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset){	//opcode:0x14	DW_CFA_val_offset(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+
+
+					analysis			+= "val_offset "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+
+
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset_sf){	//opcode:0x15	DW_CFA_val_offset_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+
+
+					analysis			+= "val_offset_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+
+
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_register){	//opcode:0x09	DW_CFA_register(uleb128 Reg, uleb128 Src)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result src	= new ULEB128Result(data, offset+pos);
+					pos					+= src.getSize();
+					analysis			+= "register "+getDwRegistryName((int)reg.getValue())+" in "+getDwRegistryName((int)src.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_expression){	//opcode:0x10	DW_CFA_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if(eMachine==EM_386 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
+					pos++;
+					analysis			+= "restore "+getDwRegistryName(reg)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_extended){	//opcode:0x06	DW_CFA_restore_extended(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "restore_extended "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_remember_state){	//opcode:0x0a	DW_CFA_remember_state
+					pos++;
+					analysis			+= "remember_state\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_state){	//opcode:0x0b	DW_CFA_restore_state
+					pos++;
+					analysis			+= "restore_state\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
+					pos++;
+					analysis			+= "nop\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
+				}else{
+					break;
+				}
+			}
+			notes		= EH_FRAME_CIE_dw_cfa_bytecode_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord dw_cfa_bytecode	= null;
+			if(rva!=0 && lma!=0){
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> dw_cfa_bytecode_Item	= new TreeItem<>(dw_cfa_bytecode);
+//			dw_cfa_bytecode_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(dw_cfa_bytecode_Item);
+
+
+			while(count<dataSize){
+				// length、negated_cie_offsetをチェック
+				int fl	= 0;	// length
+				int nco	= 0;	// negated_cie_offset
+
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+beforesize+UINT32_T-1; i>=offset+beforesize; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset+beforesize; i<offset+beforesize+UINT32_T; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				fl	= getStringToInt(value, false);
+
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+beforesize+UINT32_T*2-1; i>=offset+beforesize+UINT32_T; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset+beforesize+UINT32_T; i<offset+beforesize+UINT32_T*2; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				nco	= getStringToInt(value, false);
+
+				// lengthが0、またはnegated_cie_offsetが0(cie_id)なら、ループから抜ける
+				if(fl==0 || nco==0){
+					break;
+				}
+
+				//fde
+				name		= "FRAME_DESCRIPTION_ENTRY["+String.format("%08X", offset+size).toUpperCase()+"]";
 				rawAddr		+= beforesize;
 				raw			= rawAddr;
 				offset		+= beforesize;
@@ -19378,21 +20704,21 @@ public class ApplicationController implements Initializable {
 				size		= 0;
 				value		= "";
 				analysis	= "";
-				notes		= EH_FRAME_CIE_Notes;
+				notes		= EH_FRAME_FDE_Notes;
 				beforesize	= 0;
 				baseOffset	= offset;
 
-				EPlusViewerTreeTableRecord EH_FRAME_CIE	= null;
+				EPlusViewerTreeTableRecord EH_FRAME_FDE	= null;
 				if(rva!=0 && lma!=0){
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_CIE_Item 	= new TreeItem<>(EH_FRAME_CIE);
-//				EH_FRAME_CIE_Item.setExpanded(true);
-				item.getChildren().add(EH_FRAME_CIE_Item);
+				TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_FDE_Item 	= new TreeItem<>(EH_FRAME_FDE);
+//				EH_FRAME_FDE_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(EH_FRAME_FDE_Item);
 
 
 				//0x00	UINT32_T	length
@@ -19418,31 +20744,31 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				v			= getStringToInt(value, false);
-				cie_length	= v;
+				fde_length	= v;
 				analysis	= "";
 				analysis	+= v+" bytes";
-				notes		= EH_FRAME_CIE_length_Notes;
+				notes		= EH_FRAME_FDE_length_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord length	= null;
+				EPlusViewerTreeTableRecord fdelength	= null;
 				if(rva!=0 && lma!=0){
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> length_Item	= new TreeItem<>(length);
-//				length_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(length_Item);
+				TreeItem<EPlusViewerTreeTableRecord> fdelength_Item	= new TreeItem<>(fdelength);
+//				fdelength_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(fdelength_Item);
 
 				//サイズをアップデート
-				EH_FRAME_CIE.setSize(String.format("%08X", cie_length+UINT32_T).toUpperCase());
+				EH_FRAME_FDE.setSize(String.format("%08X", fde_length+UINT32_T).toUpperCase());
 
 
-				//0x04	INT32_T	cie_id
-				name	= "cie_id";
+				//0x04	INT32_T	negated_cie_offset
+				name	= "negated_cie_offset";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -19466,25 +20792,25 @@ public class ApplicationController implements Initializable {
 				v			= getStringToInt(value, false);
 				analysis	= "";
 				analysis	+= v;
-				notes		= EH_FRAME_CIE_cie_id_Notes;
+				notes		= EH_FRAME_FDE_negated_cie_offset_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord cie_id	= null;
+				EPlusViewerTreeTableRecord negated_cie_offset	= null;
 				if(rva!=0 && lma!=0){
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> cie_id_Item	= new TreeItem<>(cie_id);
-//				cie_id_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(cie_id_Item);
+				TreeItem<EPlusViewerTreeTableRecord> negated_cie_offset_Item	= new TreeItem<>(negated_cie_offset);
+//				negated_cie_offset_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(negated_cie_offset_Item);
 
 
-				//0x08	UINT8_T	version
-				name	= "version";
+				//0x08	UINT8_T	func_start[]
+				name	= "func_start";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -19494,56 +20820,16 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				size	= UINT8_T;
-				value	= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb			= new ULEB128Result(data, offset);
+					v				= (int)uleb.getValue();
+					fde_ptr_size	= uleb.getSize();
+				}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb			= new SLEB128Result(data, offset);
+					v				= (int)sleb.getValue();
+					fde_ptr_size	= sleb.getSize();
 				}
-				vb			= data[offset+size-1];
-				cie_version	= vb;
-				analysis	= "";
-				analysis	+= vb;
-				notes		= EH_FRAME_CIE_version_Notes;
-				beforesize	= size;
-				count		+= size;
-
-				EPlusViewerTreeTableRecord version	= null;
-				if(rva!=0 && lma!=0){
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else{
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> version_Item	= new TreeItem<>(version);
-//				version_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(version_Item);
-
-
-				//0x09	char	aug_string[]
-				name	= "aug_string";
-				rawAddr	+= beforesize;
-				raw		= rawAddr;
-				offset	+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				cie_aug_string	=	"";
-				size=0;
-				while(data[offset+size]!='\0'){
-					cie_aug_string	+= (char)data[offset+size];
-					size++;
-				}
-				size++;
+				size	= fde_ptr_size;
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -19555,185 +20841,90 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				analysis	+= "flag=";
-				if(cie_aug_string.contains("eh")){
-					cie_eh_flag		= true;
-					analysis	+= "eh ";
-				}
-				if(cie_aug_string.contains("z")){
-					cie_z_flag		= true;
-					analysis	+= "z ";
-				}
-				if(cie_aug_string.contains("P")){
-					cie_P_flag		= true;
-					analysis	+= "P ";
-				}
-				if(cie_aug_string.contains("L")){
-					cie_L_flag		= true;
-					analysis	+= "L ";
-				}
-				if(cie_aug_string.contains("R")){
-					cie_R_flag		= true;
-					analysis	+= "R ";
-				}
-				if(cie_aug_string.contains("S")){
-					cie_S_flag		= true;
-					analysis	+= "S ";
-				}
-				if(cie_aug_string.contains("B")){
-					cie_B_flag		= true;
-					analysis	+= "B ";
-				}
+				fde_func_start_addr	= 0;
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (int)(rva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (int)(v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (int)(startRva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
 
-				notes		= EH_FRAME_CIE_aug_string_Notes;
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
+					v	= getStringToInt(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (int)(rva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (int)(v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (int)(startRva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
+					v	= getStringToInt(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (int)(rva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (int)(v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (int)(startRva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
+					vl	= getStringToLong(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (int)(rva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (int)(vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (int)(startRva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}
+				notes		= EH_FRAME_FDE_func_start_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord aug_string	= null;
+				EPlusViewerTreeTableRecord func_start	= null;
 				if(rva!=0 && lma!=0){
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> aug_string_Item	= new TreeItem<>(aug_string);
-//				aug_string_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(aug_string_Item);
+				TreeItem<EPlusViewerTreeTableRecord> func_start_Item	= new TreeItem<>(func_start);
+//				func_start_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(func_start_Item);
 
 
-				if(cie_eh_flag){
-					//0xXX	void*	eh_ptr
-					name	= "eh_ptr";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= ELF32_ADDR_SIZE;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					notes		= EH_FRAME_CIE_eh_ptr_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord eh_ptr	= null;
-					if(rva!=0 && lma!=0){
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> eh_ptr_Item	= new TreeItem<>(eh_ptr);
-//					eh_ptr_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(eh_ptr_Item);
-				}
-
-
-				if(cie_version>=4){
-					//0xXX	UINT8_T	addr_size
-					name	= "addr_size";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					cie_addr_size	= vb;
-					analysis		= "";
-					analysis		+= vb+" bytes";
-					notes			= EH_FRAME_CIE_addr_size_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord addr_size	= null;
-					if(rva!=0 && lma!=0){
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> addr_size_Item	= new TreeItem<>(addr_size);
-//					addr_size_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(addr_size_Item);
-
-
-					//0xXX	UINT8_T	segment_size
-					name	= "segment_size";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb					= data[offset+size-1];
-					cie_segment_size	= vb;
-					analysis			= "";
-					analysis			+= vb+" bytes";
-					notes				= EH_FRAME_CIE_segment_size_Notes;
-					beforesize			= size;
-					count				+= size;
-
-					EPlusViewerTreeTableRecord segment_size	= null;
-					if(rva!=0 && lma!=0){
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> segment_size_Item	= new TreeItem<>(segment_size);
-//					segment_size_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(segment_size_Item);
-				}
-
-
-				//0xXX	uleb128	code_align
-				name	= "code_align";
+				//0xXX	UINT8_T	func_length[]
+				name	= "func_length";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -19743,9 +20934,16 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				uleb	= new ULEB128Result(data, offset);
-				v		= (int)uleb.getValue();
-				size	= uleb.getSize();
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb			= new ULEB128Result(data, offset);
+					v				= (int)uleb.getValue();
+					fde_ptr_size	= uleb.getSize();
+				}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb			= new SLEB128Result(data, offset);
+					v				= (int)sleb.getValue();
+					fde_ptr_size	= sleb.getSize();
+				}
+				size	= fde_ptr_size;
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -19756,154 +20954,26 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
-				cie_code_align	= v;
+				v			= getStringToInt(value, false);
+				fde_func_length	= v;
 				analysis	= "";
-				analysis	+= Integer.toUnsignedString(v);
-				notes		= EH_FRAME_CIE_code_align_Notes;
+				analysis	+= v+" bytes\n";
+				analysis	+= "func_end(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+fde_func_length)).toUpperCase();
+				notes		= EH_FRAME_FDE_func_length_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord code_align	= null;
+				EPlusViewerTreeTableRecord func_length	= null;
 				if(rva!=0 && lma!=0){
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> code_align_Item	= new TreeItem<>(code_align);
-//				code_align_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(code_align_Item);
-
-
-				//0xXX	sleb128	data_align
-				name	= "data_align";
-				rawAddr	+= beforesize;
-				raw		= rawAddr;
-				offset	+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				sleb	= new SLEB128Result(data, offset);
-				v		= (int)sleb.getValue();
-				size	= sleb.getSize();
-				value	= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}
-				cie_data_align	= v;
-				analysis	= "";
-				analysis	+= v;
-				notes		= EH_FRAME_CIE_data_align_Notes;
-				beforesize	= size;
-				count		+= size;
-
-				EPlusViewerTreeTableRecord data_align	= null;
-				if(rva!=0 && lma!=0){
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else{
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> data_align_Item	= new TreeItem<>(data_align);
-//				data_align_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(data_align_Item);
-
-
-				if(cie_version==1){
-					//0xXX	UINT8_T	return_address_ordinal
-					name	= "return_address_ordinal";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb			= data[offset+size-1];
-					analysis	= "";
-					analysis	+= Integer.toUnsignedString(vb);
-					notes		= EH_FRAME_CIE_return_address_ordinal_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord return_address_ordinal	= null;
-					if(rva!=0 && lma!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
-//					return_address_ordinal_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
-				}else{
-					//0xXX	uleb128	return_address_ordinal
-					name	= "return_address_ordinal";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					uleb	= new ULEB128Result(data, offset);
-					v		= (int)uleb.getValue();
-					size	= uleb.getSize();
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					analysis	+= Integer.toUnsignedString(v);
-					notes		= EH_FRAME_CIE_return_address_ordinal_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord return_address_ordinal	= null;
-					if(rva!=0 && lma!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
-//					return_address_ordinal_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
-				}
+				TreeItem<EPlusViewerTreeTableRecord> func_length_Item	= new TreeItem<>(func_length);
+//				func_length_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(func_length_Item);
 
 
 				if(cie_z_flag){
@@ -19931,225 +21001,28 @@ public class ApplicationController implements Initializable {
 							value	+= String.format("%02X", data[i]).toUpperCase();
 						}
 					}
-					cie_z_flag_length	= v;
+					fde_z_flag_length	= v;
 					analysis	= "";
 					analysis	+= v+" bytes";
-					notes		= EH_FRAME_CIE_aug_operands_z_flag_length_Notes;
+					notes		= EH_FRAME_FDE_aug_operands_z_flag_length_Notes;
 					beforesize	= size;
 					count		+= size;
 
-					EPlusViewerTreeTableRecord aug_operands_z_flag_length	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_z_flag_length	= null;
 					if(rva!=0 && lma!=0){
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_z_flag_length_Item	= new TreeItem<>(aug_operands_z_flag_length);
-//					aug_operands_z_flag_length_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_z_flag_length_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_z_flag_length_Item	= new TreeItem<>(fde_aug_operands_z_flag_length);
+//					fde_aug_operands_z_flag_length_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_z_flag_length_Item);
 				}
 
 
-				if(cie_P_flag){
-					//0xXX	aug_operands[] P_flag	uint8_t	ptr_encoding
-					name	= "aug_operands_P_flag_ptr_encoding";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb			= data[offset+size-1];
-					analysis	= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis			+= "absptr(0x0)";
-						ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis			+= "uleb128(0x1)";
-						ptr_encoding_type	= DW_EH_PE_ULEB128;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis			+= "udata2(0x2)";
-						ptr_encoding_type	= DW_EH_PE_UDATA2;
-						ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis			+= "udata4(0x3)";
-						ptr_encoding_type	= DW_EH_PE_UDATA4;
-						ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis			+= "udata8(0x4)";
-						ptr_encoding_type	= DW_EH_PE_UDATA8;
-						ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis			+= "sleb128(0x9)";
-						ptr_encoding_type	= DW_EH_PE_SLEB128;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis			+= "sdata2(0xa)";
-						ptr_encoding_type	= DW_EH_PE_SDATA2;
-						ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis			+= "sdata4(0xb)";
-						ptr_encoding_type	= DW_EH_PE_SDATA4;
-						ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis			+= "sdata8(0xc)";
-						ptr_encoding_type	= DW_EH_PE_SDATA8;
-						ptr_size			= 8;
-					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis			+= ", pcrel(0x10)";
-						ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis			+= ", textrel(0x20)";
-						ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis			+= ", datarel(0x30)";
-						ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis			+= ", funcrel(0x40)";
-						ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis			+= ", aligned(0x50)";
-						ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes		= EH_FRAME_CIE_aug_operands_P_flag_ptr_encoding_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_P_flag_ptr_encoding	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_ptr_encoding_Item	= new TreeItem<>(aug_operands_P_flag_ptr_encoding);
-//					aug_operands_P_flag_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_ptr_encoding_Item);
-
-
-					//0xXX	aug_operands[] P_flag	uint8_t	personality_ptr[]
-					name	= "aug_operands_P_flag_personality_ptr";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					if(ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb		= new ULEB128Result(data, offset);
-						v			= (int)uleb.getValue();
-						ptr_size	= uleb.getSize();
-					}else if(ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb		= new SLEB128Result(data, offset);
-						v			= (int)sleb.getValue();
-						ptr_size	= sleb.getSize();
-					}
-					size	= ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					if(ptr_encoding_type==DW_EH_PE_ULEB128 || ptr_encoding_type==DW_EH_PE_SLEB128){
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA2 || ptr_encoding_type==DW_EH_PE_SDATA2){
-						v	= getStringToInt(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA4 || ptr_encoding_type==DW_EH_PE_SDATA4){
-						v	= getStringToInt(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA8 || ptr_encoding_type==DW_EH_PE_SDATA8){
-						vl	= getStringToLong(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}
-					notes		= EH_FRAME_CIE_aug_operands_P_flag_personality_ptr_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_P_flag_personality_ptr	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_personality_ptr_Item	= new TreeItem<>(aug_operands_P_flag_personality_ptr);
-//					aug_operands_P_flag_personality_ptr_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_personality_ptr_Item);
-				}
-
-
-				if(cie_L_flag){
+				if(fde_z_flag_length>0 && cie_L_flag){
 					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
 					name	= "aug_operands_L_flag_lsda_ptr_encoding";
 					rawAddr	+= beforesize;
@@ -20161,7 +21034,16 @@ public class ApplicationController implements Initializable {
 					if(lma!=0){
 						lma	+= beforesize;
 					}
-					size	= UINT8_T;
+					if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128){
+						uleb			= new ULEB128Result(data, offset);
+						v				= (int)uleb.getValue();
+						lsda_ptr_size	= uleb.getSize();
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
+						sleb			= new SLEB128Result(data, offset);
+						v				= (int)sleb.getValue();
+						lsda_ptr_size	= sleb.getSize();
+					}
+					size	= lsda_ptr_size;
 					value	= "";
 					if(ELFDATA==ELFDATA2LSB){	//LSB
 						for(int i=offset+size-1; i>=offset; i--){
@@ -20172,173 +21054,77 @@ public class ApplicationController implements Initializable {
 							value	+= String.format("%02X", data[i]).toUpperCase();
 						}
 					}
-					vb			= data[offset+size-1];
 					analysis	= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis				+= "absptr(0x0)";
-						lsda_ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis				+= "uleb128(0x1)";
-						lsda_ptr_encoding_type	= DW_EH_PE_ULEB128;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis				+= "udata2(0x2)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA2;
-						lsda_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis				+= "udata4(0x3)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA4;
-						lsda_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis				+= "udata8(0x4)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA8;
-						lsda_ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis				+= "sleb128(0x9)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SLEB128;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis				+= "sdata2(0xa)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA2;
-						lsda_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis				+= "sdata4(0xb)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA4;
-						lsda_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis				+= "sdata8(0xc)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA8;
-						lsda_ptr_size			= 8;
+					if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128 || lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA2 || lsda_ptr_encoding_type==DW_EH_PE_SDATA2){
+						v	= getStringToInt(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA4 || lsda_ptr_encoding_type==DW_EH_PE_SDATA4){
+						v	= getStringToInt(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA8 || lsda_ptr_encoding_type==DW_EH_PE_SDATA8){
+						vl	= getStringToLong(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+vl)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
 					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis				+= ", pcrel(0x10)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis				+= ", textrel(0x20)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis				+= ", datarel(0x30)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis				+= ", funcrel(0x40)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis				+= ", aligned(0x50)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes		= EH_FRAME_CIE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
+					notes		= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
 					beforesize	= size;
 					count		+= size;
 
-					EPlusViewerTreeTableRecord aug_operands_L_flag_lsda_ptr_encoding	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
 					if(rva!=0 && lma!=0){
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(aug_operands_L_flag_lsda_ptr_encoding);
-//					aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_L_flag_lsda_ptr_encoding_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
+//					fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
 				}
 
-
-				if(cie_R_flag){
-					//0xXX	aug_operands[] R_flag	uint8_t	fde_ptr_encoding
-					name	= "aug_operands_R_flag_fde_ptr_encoding";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb			= data[offset+size-1];
-					analysis	= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis		+= "absptr(0x0)";
-						fde_ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis		+= "uleb128(0x1)";
-						fde_ptr_encoding_type	= DW_EH_PE_ULEB128;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis		+= "udata2(0x2)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA2;
-						fde_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis		+= "udata4(0x3)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA4;
-						fde_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis		+= "udata8(0x4)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA8;
-						fde_ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis		+= "sleb128(0x9)";
-						fde_ptr_encoding_type	= DW_EH_PE_SLEB128;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis		+= "sdata2(0xa)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA2;
-						fde_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis		+= "sdata4(0xb)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA4;
-						fde_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis		+= "sdata8(0xc)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA8;
-						fde_ptr_size			= 8;
-					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis				+= ", pcrel(0x10)";
-						fde_ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis				+= ", textrel(0x20)";
-						fde_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis				+= ", datarel(0x30)";
-						fde_ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis				+= ", funcrel(0x40)";
-						fde_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis				+= ", aligned(0x50)";
-						fde_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes		= EH_FRAME_CIE_aug_operands_R_flag_fde_ptr_encoding_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_R_flag_fde_ptr_encoding	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_R_flag_fde_ptr_encoding_Item	= new TreeItem<>(aug_operands_R_flag_fde_ptr_encoding);
-//					aug_operands_R_flag_fde_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_R_flag_fde_ptr_encoding_Item);
-				}
+				fde_z_flag_length = 0;
 
 
 				//0xXX	uint8_t	dw_cfa_bytecode[]
@@ -20352,7 +21138,7 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				size	= cie_length+UINT32_T-(offset-baseOffset);
+				size	= fde_length+UINT32_T-(offset-baseOffset);
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -20381,8 +21167,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (int)(startRva+ptr.getValue());
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (int)(fde_func_start_addr+ptr.getValue());
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -20402,8 +21189,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (int)(startRva+v);
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (int)(fde_func_start_addr+v);
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -20423,8 +21211,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (int)(startRva+v);
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (int)(fde_func_start_addr+v);
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -20444,8 +21233,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (int)(startRva+vl);
 								analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (int)(fde_func_start_addr+vl);
+								analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -20516,7 +21306,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "def_cfa_expression "+len.getValue()+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
 						pos++;
@@ -20584,7 +21374,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
 						pos++;
@@ -20593,7 +21383,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if(eMachine==EM_386 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
 						int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
@@ -20624,872 +21414,1481 @@ public class ApplicationController implements Initializable {
 						break;
 					}
 				}
-				notes		= EH_FRAME_CIE_dw_cfa_bytecode_Notes;
+				notes		= EH_FRAME_FDE_dw_cfa_bytecode_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord dw_cfa_bytecode	= null;
+				EPlusViewerTreeTableRecord fde_dw_cfa_bytecode	= null;
 				if(rva!=0 && lma!=0){
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> dw_cfa_bytecode_Item	= new TreeItem<>(dw_cfa_bytecode);
-//				dw_cfa_bytecode_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(dw_cfa_bytecode_Item);
+				TreeItem<EPlusViewerTreeTableRecord> fde_dw_cfa_bytecode_Item	= new TreeItem<>(fde_dw_cfa_bytecode);
+//				fde_dw_cfa_bytecode_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(fde_dw_cfa_bytecode_Item);
 
 
-				while(fdeOffsetMap!=null && fdeOffsetMap.containsKey((long)(offset+size))){
-					//fde
-					name		= "FRAME_DESCRIPTION_ENTRY["+String.format("%08X", offset+size).toUpperCase()+"]";
-					rawAddr		+= beforesize;
-					raw			= rawAddr;
-					offset		+= beforesize;
-					if(rva!=0){
-						rva		+= beforesize;
-					}
-					if(lma!=0){
-						lma		+= beforesize;
-					}
-					size		= 0;
-					value		= "";
-					analysis	= "";
-					notes		= EH_FRAME_FDE_Notes;
-					beforesize	= 0;
-					baseOffset	= offset;
-
-					EPlusViewerTreeTableRecord EH_FRAME_FDE	= null;
-					if(rva!=0 && lma!=0){
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				if(count<=dataSize && count+ELF32_ADDR_SIZE>=dataSize){	//終端なら
+					if((offset+size)%ELF32_ADDR_SIZE==0){
+						count	+=	ELF32_ADDR_SIZE;
 					}else{
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						count	+=	ELF32_ADDR_SIZE-((offset+size)%ELF32_ADDR_SIZE);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_FDE_Item 	= new TreeItem<>(EH_FRAME_FDE);
-//					EH_FRAME_FDE_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(EH_FRAME_FDE_Item);
+
+					break;
+				}
+			}
+		}
+	}
+
+	private void makeEhFrame64(TreeItem<EPlusViewerTreeTableRecord> item, SectionHeader sh){
+
+		//開始アドレス取得
+		long startAddr64	= sh.getSh_offset_long();
+		int startAddr32		= (int)startAddr64;
+
+		//データ取得用
+		int dataSize	= (int)sh.getSh_size_long();
+		byte[] data		= null;
+
+		//データ取得
+		data	= getBintableBytes(startAddr32, dataSize);
+
+		//設定用変数
+		String name		= "";
+		int raw			= 0;
+		int rawAddr		= 0;
+		long rva		= 0;
+		long startRva	= 0;
+		long lma		= 0;
+		int offset		= 0;
+		int beforesize	= 0;
+		int size		= 0;
+		String value	= "";
+		String analysis = "";
+		String notes	= "";
+		byte vb			= 0;
+		int v			= 0;
+		long vl			= 0;
+
+		//オフセット
+		int startOffset	= 0;
+		int baseOffset	= 0;
+
+		//保存用
+		ULEB128Result uleb		= null;
+		SLEB128Result sleb		= null;
+		int cie_length			= 0;
+		int cie_version			= 0;
+		String cie_aug_string	= "";
+		int cie_addr_size		= 0;
+		int cie_segment_size	= 0;
+		int cie_z_flag_length	= 0;
+		int fde_length			= 0;
+		int fde_z_flag_length	= 0;
+		int cie_code_align		= 0;
+		int cie_data_align		= 0;
+		long fde_func_start_addr	= 0;
+		long fde_func_length		= 0;
+		long loc_addr				= 0;
+
+		//フラグ
+		boolean cie_eh_flag	= false;
+		boolean cie_z_flag	= false;
+		boolean cie_R_flag	= false;
+		boolean cie_P_flag	= false;
+		boolean cie_L_flag	= false;
+		boolean cie_S_flag	= false;
+		boolean cie_B_flag	= false;
+		boolean cie_G_flag	= false;	//aarch64
+
+		//エンコーディングとサイズ
+		int fde_ptr_encoding_type		= 0;
+		int fde_ptr_encoding_rel		= 0;
+		int fde_ptr_size				= 0;
+		int ptr_encoding_type			= 0;
+		int ptr_encoding_rel			= 0;
+		int ptr_size					= 0;
+		int lsda_ptr_encoding_type		= 0;
+		int lsda_ptr_encoding_rel		= 0;
+		int lsda_ptr_size				= 0;
+
+		//カウント
+		int count			= 0;
+		int pos				= 0;
+
+		//アドレス設定
+		rawAddr			= startAddr32;
+		rva				= sh.getSh_addr_long();
+		startRva		= rva;
+		String strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+		if(strLma!=null){
+			lma			= getStringToLong(strLma, false);
+		}
 
 
-					//0x00	UINT32_T	length
-					name	= "length";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT32_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					fde_length	= v;
-					analysis	= "";
-					analysis	+= v+" bytes";
-					notes		= EH_FRAME_FDE_length_Notes;
-					beforesize	= size;
-					count		+= size;
+		while(count<dataSize){
+			//フラグリセット
+			cie_eh_flag	= false;
+			cie_z_flag	= false;
+			cie_R_flag	= false;
+			cie_P_flag	= false;
+			cie_L_flag	= false;
+			cie_S_flag	= false;
+			cie_B_flag	= false;
+			cie_G_flag	= false;
 
-					EPlusViewerTreeTableRecord fdelength	= null;
-					if(rva!=0 && lma!=0){
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> fdelength_Item	= new TreeItem<>(fdelength);
-//					fdelength_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fdelength_Item);
+			//cie
+			name		= "COMMON_INFORMATION_ENTRY";
+			rawAddr		+= beforesize;
+			raw			= rawAddr;
+			offset		+= beforesize;
+			if(rva!=0){
+				rva		+= beforesize;
+			}
+			if(lma!=0){
+				lma		+= beforesize;
+			}
+			size		= 0;
+			value		= "";
+			analysis	= "";
+			notes		= EH_FRAME_CIE_Notes;
+			beforesize	= 0;
+			baseOffset	= offset;
 
-					//サイズをアップデート
-					EH_FRAME_FDE.setSize(String.format("%08X", fde_length+UINT32_T).toUpperCase());
+			EPlusViewerTreeTableRecord EH_FRAME_CIE	= null;
+			if(rva!=0 && lma!=0){
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_CIE_Item 	= new TreeItem<>(EH_FRAME_CIE);
+//			EH_FRAME_CIE_Item.setExpanded(true);
 
 
-					//0x04	INT32_T	negated_cie_offset
-					name	= "negated_cie_offset";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= INT32_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					analysis	= "";
-					analysis	+= v;
-					notes		= EH_FRAME_FDE_negated_cie_offset_Notes;
-					beforesize	= size;
-					count		+= size;
+			//0x00	UINT32_T	length
+			name	= "length";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= UINT32_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			v			= getStringToInt(value, false);
+			cie_length	= v;
+			analysis	= "";
+			analysis	+= v+" bytes";
+			notes		= EH_FRAME_CIE_length_Notes;
+			beforesize	= size;
+			count		+= size;
 
-					EPlusViewerTreeTableRecord negated_cie_offset	= null;
-					if(rva!=0 && lma!=0){
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> negated_cie_offset_Item	= new TreeItem<>(negated_cie_offset);
-//					negated_cie_offset_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(negated_cie_offset_Item);
+			EPlusViewerTreeTableRecord length	= null;
+			if(rva!=0 && lma!=0){
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> length_Item	= new TreeItem<>(length);
+//			length_Item.setExpanded(true);
+
+			// cie_lengthが0ならループから抜ける
+			if(cie_length == 0){
+				break;
+			}
+
+			item.getChildren().add(EH_FRAME_CIE_Item);
+			EH_FRAME_CIE_Item.getChildren().add(length_Item);
+
+			//サイズをアップデート
+			EH_FRAME_CIE.setSize(String.format("%08X", cie_length+UINT32_T).toUpperCase());
 
 
-					//0x08	UINT8_T	func_start[]
-					name	= "func_start";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
+			//0x04	UINT32_T	cie_id
+			name	= "cie_id";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= INT32_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			v			= getStringToInt(value, false);
+			analysis	= "";
+			analysis	+= v;
+			notes		= EH_FRAME_CIE_cie_id_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord cie_id	= null;
+			if(rva!=0 && lma!=0){
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> cie_id_Item	= new TreeItem<>(cie_id);
+//			cie_id_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(cie_id_Item);
+
+
+			//0x08	UINT8_T	version
+			name	= "version";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= UINT8_T;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			vb			= data[offset+size-1];
+			cie_version	= vb;
+			analysis	= "";
+			analysis	+= vb;
+			notes		= EH_FRAME_CIE_version_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord version	= null;
+			if(rva!=0 && lma!=0){
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> version_Item	= new TreeItem<>(version);
+//			version_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(version_Item);
+
+
+			//0x09	char	aug_string[]
+			name	= "aug_string";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			cie_aug_string	=	"";
+			size=0;
+			while(data[offset+size]!='\0'){
+				cie_aug_string	+= (char)data[offset+size];
+				size++;
+			}
+			size++;
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			analysis	= "";
+			analysis	+= "flag=";
+			if(cie_aug_string.contains("eh")){
+				cie_eh_flag		= true;
+				analysis	+= "eh ";
+			}
+			if(cie_aug_string.contains("z")){
+				cie_z_flag		= true;
+				analysis	+= "z ";
+			}
+			if(cie_aug_string.contains("P")){
+				cie_P_flag		= true;
+				analysis	+= "P ";
+			}
+			if(cie_aug_string.contains("L")){
+				cie_L_flag		= true;
+				analysis	+= "L ";
+			}
+			if(cie_aug_string.contains("R")){
+				cie_R_flag		= true;
+				analysis	+= "R ";
+			}
+			if(cie_aug_string.contains("S")){
+				cie_S_flag		= true;
+				analysis	+= "S ";
+			}
+			if(cie_aug_string.contains("B")){
+				cie_B_flag		= true;
+				analysis	+= "B ";
+			}
+			if(cie_aug_string.contains("G")){
+				cie_G_flag		= true;
+				analysis	+= "G ";
+			}
+			notes		= EH_FRAME_CIE_aug_string_Notes;
+			beforesize	= size;
+			count		+= size;
+
+			EPlusViewerTreeTableRecord aug_string	= null;
+			if(rva!=0 && lma!=0){
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> aug_string_Item	= new TreeItem<>(aug_string);
+//			aug_string_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(aug_string_Item);
+
+
+			if(cie_eh_flag){
+				//0xXX	void*	eh_ptr
+				name	= "eh_ptr";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= ELF64_ADDR_SIZE;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					if(lma!=0){
-						lma	+= beforesize;
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb			= new ULEB128Result(data, offset);
-						v				= (int)uleb.getValue();
-						fde_ptr_size	= uleb.getSize();
-					}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb			= new SLEB128Result(data, offset);
-						v				= (int)sleb.getValue();
-						fde_ptr_size	= sleb.getSize();
+				}
+				analysis	= "";
+				notes		= EH_FRAME_CIE_eh_ptr_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord eh_ptr	= null;
+				if(rva!=0 && lma!=0){
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> eh_ptr_Item	= new TreeItem<>(eh_ptr);
+//				eh_ptr_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(eh_ptr_Item);
+			}
+
+
+			if(cie_version>=4){
+				//0xXX	UINT8_T	addr_size
+				name	= "addr_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					size	= fde_ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					analysis	= "";
-					fde_func_start_addr	= 0;
+				}
+				vb				= data[offset+size-1];
+				cie_addr_size	= vb;
+				analysis		= "";
+				analysis		+= vb+" bytes";
+				notes			= EH_FRAME_CIE_addr_size_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord addr_size	= null;
+				if(rva!=0 && lma!=0){
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> addr_size_Item	= new TreeItem<>(addr_size);
+//				addr_size_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(addr_size_Item);
+
+
+				//0xXX	UINT8_T	segment_size
+				name	= "segment_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				cie_addr_size	= vb;
+				analysis		= "";
+				analysis		+= vb+" bytes";
+				notes			= EH_FRAME_CIE_segment_size_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord segment_size	= null;
+				if(rva!=0 && lma!=0){
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> segment_size_Item	= new TreeItem<>(segment_size);
+//				segment_size_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(segment_size_Item);
+			}
+
+
+			//0xXX	uleb128	code_align
+			name	= "code_align";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			uleb	= new ULEB128Result(data, offset);
+			vl		= uleb.getValue();
+			size	= uleb.getSize();
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			cie_code_align	= (int)vl;
+			analysis		= "";
+			analysis		+= Long.toUnsignedString(vl);
+			notes			= EH_FRAME_CIE_code_align_Notes;
+			beforesize		= size;
+			count			+= size;
+
+			EPlusViewerTreeTableRecord code_align	= null;
+			if(rva!=0 && lma!=0){
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> code_align_Item	= new TreeItem<>(code_align);
+//			code_align_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(code_align_Item);
+
+
+			//0xXX	sleb128	data_align
+			name	= "data_align";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			sleb	= new SLEB128Result(data, offset);
+			vl		= sleb.getValue();
+			size	= sleb.getSize();
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			cie_data_align	= (int)vl;
+			analysis		= "";
+			analysis		+= vl;
+			notes			= EH_FRAME_CIE_data_align_Notes;
+			beforesize		= size;
+			count			+= size;
+
+			EPlusViewerTreeTableRecord data_align	= null;
+			if(rva!=0 && lma!=0){
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> data_align_Item	= new TreeItem<>(data_align);
+//			data_align_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(data_align_Item);
+
+
+			if(cie_version==1){
+				//0xXX	UINT8_T	return_address_ordinal
+				name	= "return_address_ordinal";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				analysis		= "";
+				analysis		+= Integer.toUnsignedString(vb);
+				notes			= EH_FRAME_CIE_return_address_ordinal_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord return_address_ordinal	= null;
+				if(rva!=0 && lma!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
+//				return_address_ordinal_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
+			}else{
+				//0xXX	uleb128	return_address_ordinal
+				name	= "return_address_ordinal";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				uleb	= new ULEB128Result(data, offset);
+				vl		= uleb.getValue();
+				size	= uleb.getSize();
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				analysis		= "";
+				analysis		+= Long.toUnsignedString(vl);
+				notes			= EH_FRAME_CIE_return_address_ordinal_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord return_address_ordinal	= null;
+				if(rva!=0 && lma!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
+//				return_address_ordinal_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
+			}
+
+
+			if(cie_z_flag){
+				//0xXX	aug_operands[] z_flag	uleb128	length
+				name	= "aug_operands_z_flag_length";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				uleb	= new ULEB128Result(data, offset);
+				vl		= uleb.getValue();
+				size	= uleb.getSize();
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				cie_z_flag_length	= (int)vl;
+				analysis		= "";
+				analysis	+= vl+" bytes";
+				notes			= EH_FRAME_CIE_aug_operands_z_flag_length_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_z_flag_length	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_z_flag_length_Item	= new TreeItem<>(aug_operands_z_flag_length);
+//				aug_operands_z_flag_length_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_z_flag_length_Item);
+			}
+
+
+			if(cie_P_flag){
+				//0xXX	aug_operands[] P_flag	uint8_t	ptr_encoding
+				name	= "aug_operands_P_flag_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				analysis		= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis			+= "absptr(0x0)";
+					ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis			+= "uleb128(0x1)";
+					ptr_encoding_type	= DW_EH_PE_ULEB128;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis			+= "udata2(0x2)";
+					ptr_encoding_type	= DW_EH_PE_UDATA2;
+					ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis			+= "udata4(0x3)";
+					ptr_encoding_type	= DW_EH_PE_UDATA4;
+					ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis			+= "udata8(0x4)";
+					ptr_encoding_type	= DW_EH_PE_UDATA8;
+					ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis			+= "sleb128(0x9)";
+					ptr_encoding_type	= DW_EH_PE_SLEB128;
+					ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis			+= "sdata2(0xa)";
+					ptr_encoding_type	= DW_EH_PE_SDATA2;
+					ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis			+= "sdata4(0xb)";
+					ptr_encoding_type	= DW_EH_PE_SDATA4;
+					ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis			+= "sdata8(0xc)";
+					ptr_encoding_type	= DW_EH_PE_SDATA8;
+					ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis			+= ", pcrel(0x10)";
+					ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis			+= ", textrel(0x20)";
+					ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis			+= ", datarel(0x30)";
+					ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis			+= ", funcrel(0x40)";
+					ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis			+= ", aligned(0x50)";
+					ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes			= EH_FRAME_CIE_aug_operands_P_flag_ptr_encoding_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_P_flag_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_ptr_encoding_Item	= new TreeItem<>(aug_operands_P_flag_ptr_encoding);
+//				aug_operands_P_flag_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_ptr_encoding_Item);
+
+
+				//0xXX	aug_operands[] P_flag	uint8_t	personality_ptr[]
+				name	= "aug_operands_P_flag_personality_ptr";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				if(ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb		= new ULEB128Result(data, offset);
+					vl			= uleb.getValue();
+					ptr_size	= uleb.getSize();
+				}else if(ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb		= new SLEB128Result(data, offset);
+					vl			= sleb.getValue();
+					ptr_size	= sleb.getSize();
+				}
+				size	= ptr_size;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis		= "";
+				if(ptr_encoding_type==DW_EH_PE_ULEB128 || ptr_encoding_type==DW_EH_PE_SLEB128){
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA2 || ptr_encoding_type==DW_EH_PE_SDATA2){
+					v	= getStringToInt(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA4 || ptr_encoding_type==DW_EH_PE_SDATA4){
+					v	= getStringToInt(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(ptr_encoding_type==DW_EH_PE_UDATA8 || ptr_encoding_type==DW_EH_PE_SDATA8){
+					vl	= getStringToLong(value, false);
+					if(ptr_encoding_rel==DW_EH_PE_PCREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+					}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
+						analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//					}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}
+				notes			= EH_FRAME_CIE_aug_operands_P_flag_personality_ptr_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_P_flag_personality_ptr	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_personality_ptr_Item	= new TreeItem<>(aug_operands_P_flag_personality_ptr);
+//				aug_operands_P_flag_personality_ptr_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_personality_ptr_Item);
+			}
+
+
+			if(cie_L_flag){
+				//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
+				name	= "aug_operands_L_flag_lsda_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis				+= "absptr(0x0)";
+					lsda_ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis				+= "uleb128(0x1)";
+					lsda_ptr_encoding_type	= DW_EH_PE_ULEB128;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis				+= "udata2(0x2)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA2;
+					lsda_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis				+= "udata4(0x3)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA4;
+					lsda_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis				+= "udata8(0x4)";
+					lsda_ptr_encoding_type	= DW_EH_PE_UDATA8;
+					lsda_ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis				+= "sleb128(0x9)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SLEB128;
+					lsda_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis				+= "sdata2(0xa)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA2;
+					lsda_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis				+= "sdata4(0xb)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA4;
+					lsda_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis				+= "sdata8(0xc)";
+					lsda_ptr_encoding_type	= DW_EH_PE_SDATA8;
+					lsda_ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis				+= ", pcrel(0x10)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis				+= ", textrel(0x20)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis				+= ", datarel(0x30)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis				+= ", funcrel(0x40)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis				+= ", aligned(0x50)";
+					lsda_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes		= EH_FRAME_CIE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
+				beforesize	= size;
+				count		+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_L_flag_lsda_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(aug_operands_L_flag_lsda_ptr_encoding);
+//				aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_L_flag_lsda_ptr_encoding_Item);
+			}
+
+
+			if(cie_R_flag){
+				//0xXX	aug_operands[] R_flag	uint8_t	fde_ptr_encoding
+				name	= "aug_operands_R_flag_fde_ptr_encoding";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb				= data[offset+size-1];
+				analysis		= "";
+				if((vb&0xf)==DW_EH_PE_ABSPTR){
+					analysis		+= "absptr(0x0)";
+					fde_ptr_encoding_type	= DW_EH_PE_ABSPTR;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_ULEB128){
+					analysis		+= "uleb128(0x1)";
+					fde_ptr_encoding_type	= DW_EH_PE_ULEB128;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_UDATA2){
+					analysis		+= "udata2(0x2)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA2;
+					fde_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_UDATA4){
+					analysis		+= "udata4(0x3)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA4;
+					fde_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_UDATA8){
+					analysis		+= "udata8(0x4)";
+					fde_ptr_encoding_type	= DW_EH_PE_UDATA8;
+					fde_ptr_size			= 8;
+				}else if((vb&0xf)==DW_EH_PE_SLEB128){
+					analysis		+= "sleb128(0x9)";
+					fde_ptr_encoding_type	= DW_EH_PE_SLEB128;
+					fde_ptr_size			= 0;
+				}else if((vb&0xf)==DW_EH_PE_SDATA2){
+					analysis		+= "sdata2(0xa)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA2;
+					fde_ptr_size			= 2;
+				}else if((vb&0xf)==DW_EH_PE_SDATA4){
+					analysis		+= "sdata4(0xb)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA4;
+					fde_ptr_size			= 4;
+				}else if((vb&0xf)==DW_EH_PE_SDATA8){
+					analysis		+= "sdata8(0xc)";
+					fde_ptr_encoding_type	= DW_EH_PE_SDATA8;
+					fde_ptr_size			= 8;
+				}
+				if((vb&0xf0)==DW_EH_PE_PCREL){
+					analysis				+= ", pcrel(0x10)";
+					fde_ptr_encoding_rel	= DW_EH_PE_PCREL;
+				}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
+					analysis				+= ", textrel(0x20)";
+					fde_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
+				}else if((vb&0xf0)==DW_EH_PE_DATAREL){
+					analysis				+= ", datarel(0x30)";
+					fde_ptr_encoding_rel	= DW_EH_PE_DATAREL;
+				}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
+					analysis				+= ", funcrel(0x40)";
+					fde_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
+				}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
+					analysis				+= ", aligned(0x50)";
+					fde_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
+				}
+				notes			= EH_FRAME_CIE_aug_operands_R_flag_fde_ptr_encoding_Notes;
+				beforesize		= size;
+				count			+= size;
+
+				EPlusViewerTreeTableRecord aug_operands_R_flag_fde_ptr_encoding	= null;
+				if(rva!=0 && lma!=0){
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> aug_operands_R_flag_fde_ptr_encoding_Item	= new TreeItem<>(aug_operands_R_flag_fde_ptr_encoding);
+//				aug_operands_R_flag_fde_ptr_encoding_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(aug_operands_R_flag_fde_ptr_encoding_Item);
+			}
+
+
+			//0xXX	uint8_t	dw_cfa_bytecode[]
+			name	= "dw_cfa_bytecode";
+			rawAddr	+= beforesize;
+			raw		= rawAddr;
+			offset	+= beforesize;
+			if(rva!=0){
+				rva	+= beforesize;
+			}
+			if(lma!=0){
+				lma	+= beforesize;
+			}
+			size	= cie_length+UINT32_T-(offset-baseOffset);
+			value	= "";
+			if(ELFDATA==ELFDATA2LSB){	//LSB
+				for(int i=offset+size-1; i>=offset; i--){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}else{	//MSB
+				for(int i=offset; i<offset+size; i++){
+					value	+= String.format("%02X", data[i]).toUpperCase();
+				}
+			}
+			analysis	= "";
+			pos			= 0;
+			loc_addr	= fde_func_start_addr;
+			while(pos<size){
+				if((byte)data[offset+pos]==(byte)DW_CFA_set_loc){	//opcode:0x01	DW_CFA_set_loc(uint8_t Ptr[])
+					pos++;
 					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+						SLEB128Result ptr	= new SLEB128Result(data, offset+pos);
+						pos					+= ptr.getSize();
 						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (int)(rva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+							loc_addr	= (long)(rva+ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (int)(v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+							loc_addr	= (long)(ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (int)(startRva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+							loc_addr	= (long)(startRva+ptr.getValue());
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
 
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 						}
 					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
-						v	= getStringToInt(value, false);
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						v	= getStringToInt(strPtr, false);
 						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (int)(rva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+							loc_addr	= (long)(rva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (int)(v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+							loc_addr	= (long)(v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (int)(startRva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+							loc_addr	= (long)(startRva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
 
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 						}
 					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
-						v	= getStringToInt(value, false);
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						v	= getStringToInt(strPtr, false);
 						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (int)(rva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+							loc_addr	= (long)(rva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (int)(v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
+							loc_addr	= (long)(v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (int)(startRva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+							loc_addr	= (long)(startRva+v);
+							analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
 
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 						}
 					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
-						vl	= getStringToLong(value, false);
+						String strPtr	= "";
+						for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
+							strPtr	+= String.format("%02X", data[i]).toUpperCase();
+						}
+						pos	+= fde_ptr_size;
+						vl	= getStringToLong(strPtr, false);
 						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (int)(rva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+							loc_addr	= (long)(rva+vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (int)(vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+							loc_addr	= (long)(vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
 						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (int)(startRva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+							loc_addr	= (long)(startRva+vl);
+							analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
 
 //						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 						}
 					}
-					notes		= EH_FRAME_FDE_func_start_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord func_start	= null;
-					if(rva!=0 && lma!=0){
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if((byte)data[offset+pos]>=(byte)DW_CFA_advance_loc && (byte)data[offset+pos]<=(byte)(DW_CFA_advance_loc+0x3f)){	//opcode:0x40+Off	DW_CFA_advance_loc
+					int off		= 0;
+					off			= (int)((data[offset+pos]-DW_CFA_advance_loc)&0xff);
+					loc_addr	+= off*cie_code_align;
+					pos++;
+					analysis	+= "advance_loc "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc1){	//opcode:0x02	DW_CFA_advance_loc1(uint8_t Off)
+					pos++;
+					int off		= (int)(data[offset+pos]&0xff);
+					pos			+= UINT8_T;
+					loc_addr	+= off*cie_code_align;
+					analysis	+= "advance_loc1 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc2){	//opcode:0x03	DW_CFA_advance_loc2(uint16_t Off)
+					pos++;
+					String strOff	= "";
+					for(int i=offset+pos+UINT16_T-1; i>=offset+pos; i--){
+						strOff	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					TreeItem<EPlusViewerTreeTableRecord> func_start_Item	= new TreeItem<>(func_start);
-//					func_start_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(func_start_Item);
-
-
-					//0xXX	UINT8_T	func_length[]
-					name	= "func_length";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
+					int off		= getStringToInt(strOff, false);
+					loc_addr	+= off*cie_code_align;
+					pos			+= UINT16_T;
+					analysis	+= "advance_loc2 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc4){	//opcode:0x04	DW_CFA_advance_loc4(uint32_t Off)
+					pos++;
+					String strOff	= "";
+					for(int i=offset+pos+UINT32_T-1; i>=offset+pos; i--){
+						strOff	+= String.format("%02X", data[i]).toUpperCase();
 					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb			= new ULEB128Result(data, offset);
-						v				= (int)uleb.getValue();
-						fde_ptr_size	= uleb.getSize();
-					}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb			= new SLEB128Result(data, offset);
-						v				= (int)sleb.getValue();
-						fde_ptr_size	= sleb.getSize();
-					}
-					size	= fde_ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					fde_func_length	= v;
-					analysis	= "";
-					analysis	+= v+" bytes\n";
-					analysis	+= "func_end(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+fde_func_length)).toUpperCase();
-					notes		= EH_FRAME_FDE_func_length_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord func_length	= null;
-					if(rva!=0 && lma!=0){
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> func_length_Item	= new TreeItem<>(func_length);
-//					func_length_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(func_length_Item);
-
-
-					if(cie_z_flag){
-						//0xXX	aug_operands[] z_flag	uleb128	length
-						name	= "aug_operands_z_flag_length";
-						rawAddr	+= beforesize;
-						raw		= rawAddr;
-						offset	+= beforesize;
-						if(rva!=0){
-							rva	+= beforesize;
-						}
-						if(lma!=0){
-							lma	+= beforesize;
-						}
-						uleb	= new ULEB128Result(data, offset);
-						v		= (int)uleb.getValue();
-						size	= uleb.getSize();
-						value	= "";
-						if(ELFDATA==ELFDATA2LSB){	//LSB
-							for(int i=offset+size-1; i>=offset; i--){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}else{	//MSB
-							for(int i=offset; i<offset+size; i++){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}
-						fde_z_flag_length	= v;
-						analysis	= "";
-						analysis	+= v+" bytes";
-						notes		= EH_FRAME_FDE_aug_operands_z_flag_length_Notes;
-						beforesize	= size;
-						count		+= size;
-
-						EPlusViewerTreeTableRecord fde_aug_operands_z_flag_length	= null;
-						if(rva!=0 && lma!=0){
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else if(rva!=0){
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else{
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}
-						TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_z_flag_length_Item	= new TreeItem<>(fde_aug_operands_z_flag_length);
-//						fde_aug_operands_z_flag_length_Item.setExpanded(true);
-						EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_z_flag_length_Item);
-					}
+					int off	= getStringToInt(strOff, false);
+					loc_addr	+= off*cie_code_align;
+					pos			+= UINT32_T;
+					analysis	+= "advance_loc4 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa){	//opcode:0x0c	DW_CFA_def_cfa(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_sf){	//opcode:0x12	DW_CFA_def_cfa_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_sf "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+")\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_register){	//opcode:0x0d	DW_CFA_def_cfa_register(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "def_cfa_register "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset){	//opcode:0x0e	DW_CFA_def_cfa_offset(uleb128 Off)
+					pos++;
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_offset "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset_sf){	//opcode:0x13	DW_CFA_def_cfa_offset_sf(sleb128 Off)
+					pos++;
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "def_cfa_offset_sf "+off.getValue()+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_expression){	//opcode:0x0f	DW_CFA_def_cfa_expression(uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "def_cfa_expression "+len.getValue()+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "undefined "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==DW_CFA_same_value){	//opcode:0x08	DW_CFA_same_value(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "same_value "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if(eMachine==EM_X86_64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_offset && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x10)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
+					pos++;
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
+				}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_offset && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x1f)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
+					pos++;
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended){	//opcode:0x05		DW_CFA_offset_extended(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended_sf){	//opcode:0x11	DW_CFA_offset_extended_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "offset_extended_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset){	//opcode:0x14	DW_CFA_val_offset(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
 
 
-					if(fde_z_flag_length>0 && cie_L_flag){
-						//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
-						name	= "aug_operands_L_flag_lsda_ptr_encoding";
-						rawAddr	+= beforesize;
-						raw		= rawAddr;
-						offset	+= beforesize;
-						if(rva!=0){
-							rva	+= beforesize;
-						}
-						if(lma!=0){
-							lma	+= beforesize;
-						}
-						if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128){
-							uleb			= new ULEB128Result(data, offset);
-							v				= (int)uleb.getValue();
-							lsda_ptr_size	= uleb.getSize();
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
-							sleb			= new SLEB128Result(data, offset);
-							v				= (int)sleb.getValue();
-							lsda_ptr_size	= sleb.getSize();
-						}
-						size	= lsda_ptr_size;
-						value	= "";
-						if(ELFDATA==ELFDATA2LSB){	//LSB
-							for(int i=offset+size-1; i>=offset; i--){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}else{	//MSB
-							for(int i=offset; i<offset+size; i++){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}
-						analysis	= "";
-						if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128 || lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA2 || lsda_ptr_encoding_type==DW_EH_PE_SDATA2){
-							v	= getStringToInt(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA4 || lsda_ptr_encoding_type==DW_EH_PE_SDATA4){
-							v	= getStringToInt(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%08X", (int)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA8 || lsda_ptr_encoding_type==DW_EH_PE_SDATA8){
-							vl	= getStringToLong(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+vl)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}
-						notes		= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
-						beforesize	= size;
-						count		+= size;
-
-						EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
-						if(rva!=0 && lma!=0){
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else if(rva!=0){
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else{
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}
-						TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
-//						fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-						EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
-					}
-
-					fde_z_flag_length = 0;
+					analysis			+= "val_offset "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
 
 
-					//0xXX	uint8_t	dw_cfa_bytecode[]
-					name	= "dw_cfa_bytecode";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= fde_length+UINT32_T-(offset-baseOffset);
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					pos			= 0;
-					loc_addr	= fde_func_start_addr;
-					while(pos<size){
-						if((byte)data[offset+pos]==(byte)DW_CFA_set_loc){	//opcode:0x01	DW_CFA_set_loc(uint8_t Ptr[])
-							pos++;
-							if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-								SLEB128Result ptr	= new SLEB128Result(data, offset+pos);
-								pos					+= ptr.getSize();
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (int)(rva+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (int)(ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (int)(startRva+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (int)(fde_func_start_addr+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								v	= getStringToInt(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (int)(rva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (int)(v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (int)(startRva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (int)(fde_func_start_addr+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								v	= getStringToInt(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (int)(rva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (int)(v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (int)(startRva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (int)(fde_func_start_addr+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								vl	= getStringToLong(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (int)(rva+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (int)(vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (int)(startRva+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (int)(fde_func_start_addr+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}
-						}else if((byte)data[offset+pos]>=(byte)DW_CFA_advance_loc && (byte)data[offset+pos]<=(byte)(DW_CFA_advance_loc+0x3f)){	//opcode:0x40+Off	DW_CFA_advance_loc
-							int off		= 0;
-							off			= (int)((data[offset+pos]-DW_CFA_advance_loc)&0xff);
-							loc_addr	+= off*cie_code_align;
-							pos++;
-							analysis	+= "advance_loc "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc1){	//opcode:0x02	DW_CFA_advance_loc1(uint8_t Off)
-							pos++;
-							int off		= (int)(data[offset+pos]&0xff);
-							pos			+= UINT8_T;
-							loc_addr	+= off*cie_code_align;
-							analysis	+= "advance_loc1 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc2){	//opcode:0x03	DW_CFA_advance_loc2(uint16_t Off)
-							pos++;
-							String strOff	= "";
-							for(int i=offset+pos+UINT16_T-1; i>=offset+pos; i--){
-								strOff	+= String.format("%02X", data[i]).toUpperCase();
-							}
-							int off		= getStringToInt(strOff, false);
-							loc_addr	+= off*cie_code_align;
-							pos			+= UINT16_T;
-							analysis	+= "advance_loc2 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc4){	//opcode:0x04	DW_CFA_advance_loc4(uint32_t Off)
-							pos++;
-							String strOff	= "";
-							for(int i=offset+pos+UINT32_T-1; i>=offset+pos; i--){
-								strOff	+= String.format("%02X", data[i]).toUpperCase();
-							}
-							int off	= getStringToInt(strOff, false);
-							loc_addr	+= off*cie_code_align;
-							pos			+= UINT32_T;
-							analysis	+= "advance_loc4 "+off+" to 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa){	//opcode:0x0c	DW_CFA_def_cfa(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_sf){	//opcode:0x12	DW_CFA_def_cfa_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_sf "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+")\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_register){	//opcode:0x0d	DW_CFA_def_cfa_register(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "def_cfa_register "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset){	//opcode:0x0e	DW_CFA_def_cfa_offset(uleb128 Off)
-							pos++;
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_offset "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset_sf){	//opcode:0x13	DW_CFA_def_cfa_offset_sf(sleb128 Off)
-							pos++;
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_offset_sf "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_expression){	//opcode:0x0f	DW_CFA_def_cfa_expression(uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "def_cfa_expression "+len.getValue()+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "undefined "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==DW_CFA_same_value){	//opcode:0x08	DW_CFA_same_value(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "same_value "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if(eMachine==EM_386 && (int)(data[offset+pos]&0xff)>=(int)(DW_CFA_offset) && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x8)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
-							pos++;
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended){	//opcode:0x05		DW_CFA_offset_extended(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended_sf){	//opcode:0x11	DW_CFA_offset_extended_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset_extended_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset){	//opcode:0x14	DW_CFA_val_offset(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset_sf){	//opcode:0x15	DW_CFA_val_offset_sf(uleb128 Reg, sleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					SLEB128Result off	= new SLEB128Result(data, offset+pos);
+					pos					+= off.getSize();
 
 
-							analysis			+= "val_offset "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
+					analysis			+= "val_offset_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
 
 
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset_sf){	//opcode:0x15	DW_CFA_val_offset_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-
-
-							analysis			+= "val_offset_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-
-
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_register){	//opcode:0x09	DW_CFA_register(uleb128 Reg, uleb128 Src)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result src	= new ULEB128Result(data, offset+pos);
-							pos					+= src.getSize();
-							analysis			+= "register "+getDwRegistryName((int)reg.getValue())+" in "+getDwRegistryName((int)src.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_expression){	//opcode:0x10	DW_CFA_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if(eMachine==EM_386 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
-							pos++;
-							analysis			+= "restore "+getDwRegistryName(reg)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_extended){	//opcode:0x06	DW_CFA_restore_extended(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "restore_extended "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_remember_state){	//opcode:0x0a	DW_CFA_remember_state
-							pos++;
-							analysis			+= "remember_state\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_state){	//opcode:0x0b	DW_CFA_restore_state
-							pos++;
-							analysis			+= "restore_state\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
-							pos++;
-							analysis			+= "nop\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
-						}else{
-							break;
-						}
-					}
-					notes		= EH_FRAME_FDE_dw_cfa_bytecode_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord fde_dw_cfa_bytecode	= null;
-					if(rva!=0 && lma!=0){
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> fde_dw_cfa_bytecode_Item	= new TreeItem<>(fde_dw_cfa_bytecode);
-//					fde_dw_cfa_bytecode_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fde_dw_cfa_bytecode_Item);
-
-					//ゼロ終端チェック
-					if(count<dataSize && data[offset+size-1]=='\0'){
-						if((offset+size)%ELF32_ADDR_SIZE==0){
-							count	+=	ELF32_ADDR_SIZE;
-						}else{
-							count	+=	ELF32_ADDR_SIZE-((offset+size)%ELF32_ADDR_SIZE);
-						}
-					}
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_register){	//opcode:0x09	DW_CFA_register(uleb128 Reg, uleb128 Src)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result src	= new ULEB128Result(data, offset+pos);
+					pos					+= src.getSize();
+					analysis			+= "register "+getDwRegistryName((int)reg.getValue())+" in "+getDwRegistryName((int)src.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_expression){	//opcode:0x10	DW_CFA_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result len	= new ULEB128Result(data, offset+pos);
+					pos					+= len.getSize();
+					analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
+					analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+					pos					+= len.getValue();
+				}else if(eMachine==EM_X86_64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
+					pos++;
+					analysis			+= "restore "+getDwRegistryName(reg)+"\n";
+				}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x1f)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
+					int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
+					pos++;
+					analysis			+= "restore "+getDwRegistryName(reg)+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_extended){	//opcode:0x06	DW_CFA_restore_extended(uleb128 Reg)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					analysis			+= "restore_extended "+getDwRegistryName((int)reg.getValue())+"\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_remember_state){	//opcode:0x0a	DW_CFA_remember_state
+					pos++;
+					analysis			+= "remember_state\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_state){	//opcode:0x0b	DW_CFA_restore_state
+					pos++;
+					analysis			+= "restore_state\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
+					pos++;
+					analysis			+= "nop\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
+					pos++;
+					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
+					pos					+= reg.getSize();
+					ULEB128Result off	= new ULEB128Result(data, offset+pos);
+					pos					+= off.getSize();
+					analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
+				}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state){	//opcode:0x2b	DW_CFA_AARCH64_negate_ra_state
+					pos++;
+					analysis			+= "AARCH64_negate_ra_state\n";
+				}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state_with_pc){	//opcode:0x2c	DW_CFA_AARCH64_negate_ra_state_with_pc
+					pos++;
+					analysis			+= "AARCH64_negate_ra_state_with_pc\n";
+				}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_set_ra_state){	//opcode:0x2d	DW_CFA_AARCH64_set_ra_state(ULEB128 ra_state, SLEB128 offset)
+					pos++;
+					ULEB128Result ra_state	= new ULEB128Result(data, offset+pos);
+					pos						+= ra_state.getSize();
+					ULEB128Result off		= new ULEB128Result(data, offset+pos);
+					pos						+= off.getSize();
+					analysis				+= "AARCH64_set_ra_state "+Long.toUnsignedString(ra_state.getValue())+" "+off.getValue()*cie_code_align+"\n";
+				}else{
+					analysis			+= "unknown opcode:0x"+String.format("%02X", (byte)data[offset+pos]).toUpperCase()+"\n";
+					break;
 				}
 			}
-		}else if(ELFCLASS==ELFCLASS64){	//64bit
-			//開始アドレス取得
-			long startAddr64	= sh.getSh_offset_long();
-			int startAddr32		= (int)startAddr64;
+			notes		= EH_FRAME_CIE_dw_cfa_bytecode_Notes;
+			beforesize	= size;
+			count		+= size;
 
-			//データ取得用
-			int dataSize	= (int)sh.getSh_size_long();
-			byte[] data		= null;
-
-			//データ取得
-			data	= getBintableBytes(startAddr32, dataSize);
-
-			//設定用変数
-			String name		= "";
-			int raw			= 0;
-			int rawAddr		= 0;
-			long rva		= 0;
-			long startRva	= 0;
-			long lma		= 0;
-			int offset		= 0;
-			int beforesize	= 0;
-			int size		= 0;
-			String value	= "";
-			String analysis = "";
-			String notes	= "";
-			byte vb			= 0;
-			int v			= 0;
-			long vl			= 0;
-
-			//オフセット
-			int startOffset	= 0;
-			int baseOffset	= 0;
-
-			//保存用
-			ULEB128Result uleb		= null;
-			SLEB128Result sleb		= null;
-			int cie_length			= 0;
-			int cie_version			= 0;
-			String cie_aug_string	= "";
-			int cie_addr_size		= 0;
-			int cie_segment_size	= 0;
-			int cie_z_flag_length	= 0;
-			int fde_length			= 0;
-			int fde_z_flag_length	= 0;
-			int cie_code_align		= 0;
-			int cie_data_align		= 0;
-			long fde_func_start_addr	= 0;
-			long fde_func_length		= 0;
-			long loc_addr				= 0;
-
-			//フラグ
-			boolean cie_eh_flag	= false;
-			boolean cie_z_flag	= false;
-			boolean cie_R_flag	= false;
-			boolean cie_P_flag	= false;
-			boolean cie_L_flag	= false;
-			boolean cie_S_flag	= false;
-			boolean cie_B_flag	= false;
-			boolean cie_G_flag	= false;	//aarch64
-
-			//エンコーディングとサイズ
-			int fde_ptr_encoding_type		= 0;
-			int fde_ptr_encoding_rel		= 0;
-			int fde_ptr_size				= 0;
-			int ptr_encoding_type			= 0;
-			int ptr_encoding_rel			= 0;
-			int ptr_size					= 0;
-			int lsda_ptr_encoding_type		= 0;
-			int lsda_ptr_encoding_rel		= 0;
-			int lsda_ptr_size				= 0;
-
-			//カウント
-			int count			= 0;
-			int pos				= 0;
-
-			//アドレス設定
-			rawAddr			= startAddr32;
-			rva				= sh.getSh_addr_long();
-			startRva		= rva;
-			String strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
-			if(strLma!=null){
-				lma			= getStringToLong(strLma, false);
+			EPlusViewerTreeTableRecord dw_cfa_bytecode	= null;
+			if(rva!=0 && lma!=0){
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 			}
+			TreeItem<EPlusViewerTreeTableRecord> dw_cfa_bytecode_Item	= new TreeItem<>(dw_cfa_bytecode);
+//			dw_cfa_bytecode_Item.setExpanded(true);
+			EH_FRAME_CIE_Item.getChildren().add(dw_cfa_bytecode_Item);
 
 
 			while(count<dataSize){
-				//フラグリセット
-				cie_eh_flag	= false;
-				cie_z_flag	= false;
-				cie_R_flag	= false;
-				cie_P_flag	= false;
-				cie_L_flag	= false;
-				cie_S_flag	= false;
-				cie_B_flag	= false;
-				cie_G_flag	= false;
+				// length、negated_cie_offsetをチェック
+				int fl	= 0;	// length
+				int nco	= 0;	// negated_cie_offset
 
-				//cie
-				name		= "COMMON_INFORMATION_ENTRY";
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+beforesize+UINT32_T-1; i>=offset+beforesize; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset+beforesize; i<offset+beforesize+UINT32_T; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				fl	= getStringToInt(value, false);
+
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+beforesize+UINT32_T*2-1; i>=offset+beforesize+UINT32_T; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset+beforesize+UINT32_T; i<offset+beforesize+UINT32_T*2; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				nco	= getStringToInt(value, false);
+
+				// lengthが0、またはnegated_cie_offsetが0(cie_id)なら、ループから抜ける
+				if(fl==0 || nco==0){
+					break;
+				}
+
+
+				//fde
+				name		= "FRAME_DESCRIPTION_ENTRY["+String.format("%08X", offset+size).toUpperCase()+"]";
 				rawAddr		+= beforesize;
 				raw			= rawAddr;
 				offset		+= beforesize;
@@ -21502,21 +22901,21 @@ public class ApplicationController implements Initializable {
 				size		= 0;
 				value		= "";
 				analysis	= "";
-				notes		= EH_FRAME_CIE_Notes;
+				notes		= EH_FRAME_FDE_Notes;
 				beforesize	= 0;
 				baseOffset	= offset;
 
-				EPlusViewerTreeTableRecord EH_FRAME_CIE	= null;
+				EPlusViewerTreeTableRecord EH_FRAME_FDE	= null;
 				if(rva!=0 && lma!=0){
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					EH_FRAME_CIE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_CIE_Item 	= new TreeItem<>(EH_FRAME_CIE);
-//				EH_FRAME_CIE_Item.setExpanded(true);
-				item.getChildren().add(EH_FRAME_CIE_Item);
+				TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_FDE_Item 	= new TreeItem<>(EH_FRAME_FDE);
+//				EH_FRAME_FDE_Item.setExpanded(true);
+				EH_FRAME_CIE_Item.getChildren().add(EH_FRAME_FDE_Item);
 
 
 				//0x00	UINT32_T	length
@@ -21542,31 +22941,31 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				v			= getStringToInt(value, false);
-				cie_length	= v;
+				fde_length	= v;
 				analysis	= "";
 				analysis	+= v+" bytes";
-				notes		= EH_FRAME_CIE_length_Notes;
+				notes		= EH_FRAME_FDE_length_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord length	= null;
+				EPlusViewerTreeTableRecord fdelength	= null;
 				if(rva!=0 && lma!=0){
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> length_Item	= new TreeItem<>(length);
-//				length_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(length_Item);
+				TreeItem<EPlusViewerTreeTableRecord> fdelength_Item	= new TreeItem<>(fdelength);
+//				fdelength_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(fdelength_Item);
 
 				//サイズをアップデート
-				EH_FRAME_CIE.setSize(String.format("%08X", cie_length+UINT32_T).toUpperCase());
+				EH_FRAME_FDE.setSize(String.format("%08X", fde_length+UINT32_T).toUpperCase());
 
 
-				//0x04	UINT32_T	cie_id
-				name	= "cie_id";
+				//0x04	INT32_T	negated_cie_offset
+				name	= "negated_cie_offset";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -21590,25 +22989,25 @@ public class ApplicationController implements Initializable {
 				v			= getStringToInt(value, false);
 				analysis	= "";
 				analysis	+= v;
-				notes		= EH_FRAME_CIE_cie_id_Notes;
+				notes		= EH_FRAME_FDE_negated_cie_offset_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord cie_id	= null;
+				EPlusViewerTreeTableRecord negated_cie_offset	= null;
 				if(rva!=0 && lma!=0){
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					cie_id	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> cie_id_Item	= new TreeItem<>(cie_id);
-//				cie_id_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(cie_id_Item);
+				TreeItem<EPlusViewerTreeTableRecord> negated_cie_offset_Item	= new TreeItem<>(negated_cie_offset);
+//				negated_cie_offset_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(negated_cie_offset_Item);
 
 
-				//0x08	UINT8_T	version
-				name	= "version";
+				//0x08	UINT8_T	func_start[]
+				name	= "func_start";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -21618,56 +23017,16 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				size	= UINT8_T;
-				value	= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb			= new ULEB128Result(data, offset);
+					vl				= uleb.getValue();
+					fde_ptr_size	= uleb.getSize();
+				}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb			= new SLEB128Result(data, offset);
+					vl				= sleb.getValue();
+					fde_ptr_size	= sleb.getSize();
 				}
-				vb			= data[offset+size-1];
-				cie_version	= vb;
-				analysis	= "";
-				analysis	+= vb;
-				notes		= EH_FRAME_CIE_version_Notes;
-				beforesize	= size;
-				count		+= size;
-
-				EPlusViewerTreeTableRecord version	= null;
-				if(rva!=0 && lma!=0){
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else{
-					version	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> version_Item	= new TreeItem<>(version);
-//				version_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(version_Item);
-
-
-				//0x09	char	aug_string[]
-				name	= "aug_string";
-				rawAddr	+= beforesize;
-				raw		= rawAddr;
-				offset	+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				cie_aug_string	=	"";
-				size=0;
-				while(data[offset+size]!='\0'){
-					cie_aug_string	+= (char)data[offset+size];
-					size++;
-				}
-				size++;
+				size	= fde_ptr_size;
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -21679,188 +23038,90 @@ public class ApplicationController implements Initializable {
 					}
 				}
 				analysis	= "";
-				analysis	+= "flag=";
-				if(cie_aug_string.contains("eh")){
-					cie_eh_flag		= true;
-					analysis	+= "eh ";
+				fde_func_start_addr	= 0;
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (long)(rva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (long)(vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (long)(startRva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
+					v	= getStringToInt(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (long)(rva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (long)(v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (long)(startRva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
+					v	= getStringToInt(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (long)(rva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (long)(v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (long)(startRva+v);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
+				}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
+					vl	= getStringToLong(value, false);
+					if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
+						fde_func_start_addr	= (long)(rva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+						fde_func_start_addr	= (long)(vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+					}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
+						fde_func_start_addr	= (long)(startRva+vl);
+						analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+
+//					}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+					}
 				}
-				if(cie_aug_string.contains("z")){
-					cie_z_flag		= true;
-					analysis	+= "z ";
-				}
-				if(cie_aug_string.contains("P")){
-					cie_P_flag		= true;
-					analysis	+= "P ";
-				}
-				if(cie_aug_string.contains("L")){
-					cie_L_flag		= true;
-					analysis	+= "L ";
-				}
-				if(cie_aug_string.contains("R")){
-					cie_R_flag		= true;
-					analysis	+= "R ";
-				}
-				if(cie_aug_string.contains("S")){
-					cie_S_flag		= true;
-					analysis	+= "S ";
-				}
-				if(cie_aug_string.contains("B")){
-					cie_B_flag		= true;
-					analysis	+= "B ";
-				}
-				if(cie_aug_string.contains("G")){
-					cie_G_flag		= true;
-					analysis	+= "G ";
-				}
-				notes		= EH_FRAME_CIE_aug_string_Notes;
+				notes		= EH_FRAME_FDE_func_start_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord aug_string	= null;
+				EPlusViewerTreeTableRecord func_start	= null;
 				if(rva!=0 && lma!=0){
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					aug_string	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> aug_string_Item	= new TreeItem<>(aug_string);
-//				aug_string_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(aug_string_Item);
+				TreeItem<EPlusViewerTreeTableRecord> func_start_Item	= new TreeItem<>(func_start);
+//				func_start_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(func_start_Item);
 
 
-				if(cie_eh_flag){
-					//0xXX	void*	eh_ptr
-					name	= "eh_ptr";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= ELF64_ADDR_SIZE;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					notes		= EH_FRAME_CIE_eh_ptr_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord eh_ptr	= null;
-					if(rva!=0 && lma!=0){
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						eh_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> eh_ptr_Item	= new TreeItem<>(eh_ptr);
-//					eh_ptr_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(eh_ptr_Item);
-				}
-
-
-				if(cie_version>=4){
-					//0xXX	UINT8_T	addr_size
-					name	= "addr_size";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					cie_addr_size	= vb;
-					analysis		= "";
-					analysis		+= vb+" bytes";
-					notes			= EH_FRAME_CIE_addr_size_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord addr_size	= null;
-					if(rva!=0 && lma!=0){
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						addr_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> addr_size_Item	= new TreeItem<>(addr_size);
-//					addr_size_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(addr_size_Item);
-
-
-					//0xXX	UINT8_T	segment_size
-					name	= "segment_size";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					cie_addr_size	= vb;
-					analysis		= "";
-					analysis		+= vb+" bytes";
-					notes			= EH_FRAME_CIE_segment_size_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord segment_size	= null;
-					if(rva!=0 && lma!=0){
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						segment_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> segment_size_Item	= new TreeItem<>(segment_size);
-//					segment_size_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(segment_size_Item);
-				}
-
-
-				//0xXX	uleb128	code_align
-				name	= "code_align";
+				//0xXX	UINT8_T	func_length[]
+				name	= "func_length";
 				rawAddr	+= beforesize;
 				raw		= rawAddr;
 				offset	+= beforesize;
@@ -21870,9 +23131,16 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				uleb	= new ULEB128Result(data, offset);
-				vl		= uleb.getValue();
-				size	= uleb.getSize();
+				if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
+					uleb			= new ULEB128Result(data, offset);
+					vl				= uleb.getValue();
+					fde_ptr_size	= uleb.getSize();
+				}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
+					sleb			= new SLEB128Result(data, offset);
+					vl				= sleb.getValue();
+					fde_ptr_size	= sleb.getSize();
+				}
+				size	= fde_ptr_size;
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -21883,155 +23151,26 @@ public class ApplicationController implements Initializable {
 						value	+= String.format("%02X", data[i]).toUpperCase();
 					}
 				}
-				cie_code_align	= (int)vl;
-				analysis		= "";
-				analysis		+= Long.toUnsignedString(vl);
-				notes			= EH_FRAME_CIE_code_align_Notes;
-				beforesize		= size;
-				count			+= size;
+				v			= getStringToInt(value, false);
+				fde_func_length	= v;
+				analysis	= "";
+				analysis	+= v+" bytes\n";
+				analysis	+= "func_end(VMA)=0x"+String.format("%016X", (int)(fde_func_start_addr+fde_func_length)).toUpperCase();
+				notes		= EH_FRAME_FDE_func_length_Notes;
+				beforesize	= size;
+				count		+= size;
 
-				EPlusViewerTreeTableRecord code_align	= null;
+				EPlusViewerTreeTableRecord func_length	= null;
 				if(rva!=0 && lma!=0){
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					code_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> code_align_Item	= new TreeItem<>(code_align);
-//				code_align_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(code_align_Item);
-
-
-				//0xXX	sleb128	data_align
-				name	= "data_align";
-				rawAddr	+= beforesize;
-				raw		= rawAddr;
-				offset	+= beforesize;
-				if(rva!=0){
-					rva	+= beforesize;
-				}
-				if(lma!=0){
-					lma	+= beforesize;
-				}
-				sleb	= new SLEB128Result(data, offset);
-				vl		= sleb.getValue();
-				size	= sleb.getSize();
-				value	= "";
-				if(ELFDATA==ELFDATA2LSB){	//LSB
-					for(int i=offset+size-1; i>=offset; i--){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}else{	//MSB
-					for(int i=offset; i<offset+size; i++){
-						value	+= String.format("%02X", data[i]).toUpperCase();
-					}
-				}
-				cie_data_align	= (int)vl;
-				analysis		= "";
-				analysis		+= vl;
-				notes			= EH_FRAME_CIE_data_align_Notes;
-				beforesize		= size;
-				count			+= size;
-
-				EPlusViewerTreeTableRecord data_align	= null;
-				if(rva!=0 && lma!=0){
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else if(rva!=0){
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}else{
-					data_align	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-				}
-				TreeItem<EPlusViewerTreeTableRecord> data_align_Item	= new TreeItem<>(data_align);
-//				data_align_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(data_align_Item);
-
-
-				if(cie_version==1){
-					//0xXX	UINT8_T	return_address_ordinal
-					name	= "return_address_ordinal";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					analysis		= "";
-					analysis		+= Integer.toUnsignedString(vb);
-					notes			= EH_FRAME_CIE_return_address_ordinal_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord return_address_ordinal	= null;
-					if(rva!=0 && lma!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
-//					return_address_ordinal_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
-				}else{
-					//0xXX	uleb128	return_address_ordinal
-					name	= "return_address_ordinal";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					uleb	= new ULEB128Result(data, offset);
-					vl		= uleb.getValue();
-					size	= uleb.getSize();
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					analysis		= "";
-					analysis		+= Long.toUnsignedString(vl);
-					notes			= EH_FRAME_CIE_return_address_ordinal_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord return_address_ordinal	= null;
-					if(rva!=0 && lma!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						return_address_ordinal	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> return_address_ordinal_Item	= new TreeItem<>(return_address_ordinal);
-//					return_address_ordinal_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(return_address_ordinal_Item);
-				}
+				TreeItem<EPlusViewerTreeTableRecord> func_length_Item	= new TreeItem<>(func_length);
+//				func_length_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(func_length_Item);
 
 
 				if(cie_z_flag){
@@ -22061,223 +23200,26 @@ public class ApplicationController implements Initializable {
 					}
 					cie_z_flag_length	= (int)vl;
 					analysis		= "";
-					analysis	+= vl+" bytes";
-					notes			= EH_FRAME_CIE_aug_operands_z_flag_length_Notes;
+					analysis		+= vl+" bytes";
+					notes			= EH_FRAME_FDE_aug_operands_z_flag_length_Notes;
 					beforesize		= size;
 					count			+= size;
 
-					EPlusViewerTreeTableRecord aug_operands_z_flag_length	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_z_flag_length	= null;
 					if(rva!=0 && lma!=0){
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_z_flag_length_Item	= new TreeItem<>(aug_operands_z_flag_length);
-//					aug_operands_z_flag_length_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_z_flag_length_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_z_flag_length_Item	= new TreeItem<>(fde_aug_operands_z_flag_length);
+//					fde_aug_operands_z_flag_length_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_z_flag_length_Item);
 				}
 
 
-				if(cie_P_flag){
-					//0xXX	aug_operands[] P_flag	uint8_t	ptr_encoding
-					name	= "aug_operands_P_flag_ptr_encoding";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
-					analysis		= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis			+= "absptr(0x0)";
-						ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis			+= "uleb128(0x1)";
-						ptr_encoding_type	= DW_EH_PE_ULEB128;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis			+= "udata2(0x2)";
-						ptr_encoding_type	= DW_EH_PE_UDATA2;
-						ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis			+= "udata4(0x3)";
-						ptr_encoding_type	= DW_EH_PE_UDATA4;
-						ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis			+= "udata8(0x4)";
-						ptr_encoding_type	= DW_EH_PE_UDATA8;
-						ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis			+= "sleb128(0x9)";
-						ptr_encoding_type	= DW_EH_PE_SLEB128;
-						ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis			+= "sdata2(0xa)";
-						ptr_encoding_type	= DW_EH_PE_SDATA2;
-						ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis			+= "sdata4(0xb)";
-						ptr_encoding_type	= DW_EH_PE_SDATA4;
-						ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis			+= "sdata8(0xc)";
-						ptr_encoding_type	= DW_EH_PE_SDATA8;
-						ptr_size			= 8;
-					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis			+= ", pcrel(0x10)";
-						ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis			+= ", textrel(0x20)";
-						ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis			+= ", datarel(0x30)";
-						ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis			+= ", funcrel(0x40)";
-						ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis			+= ", aligned(0x50)";
-						ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes			= EH_FRAME_CIE_aug_operands_P_flag_ptr_encoding_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_P_flag_ptr_encoding	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_P_flag_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_ptr_encoding_Item	= new TreeItem<>(aug_operands_P_flag_ptr_encoding);
-//					aug_operands_P_flag_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_ptr_encoding_Item);
-
-
-					//0xXX	aug_operands[] P_flag	uint8_t	personality_ptr[]
-					name	= "aug_operands_P_flag_personality_ptr";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					if(ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb		= new ULEB128Result(data, offset);
-						vl			= uleb.getValue();
-						ptr_size	= uleb.getSize();
-					}else if(ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb		= new SLEB128Result(data, offset);
-						vl			= sleb.getValue();
-						ptr_size	= sleb.getSize();
-					}
-					size	= ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis		= "";
-					if(ptr_encoding_type==DW_EH_PE_ULEB128 || ptr_encoding_type==DW_EH_PE_SLEB128){
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA2 || ptr_encoding_type==DW_EH_PE_SDATA2){
-						v	= getStringToInt(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA4 || ptr_encoding_type==DW_EH_PE_SDATA4){
-						v	= getStringToInt(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(ptr_encoding_type==DW_EH_PE_UDATA8 || ptr_encoding_type==DW_EH_PE_SDATA8){
-						vl	= getStringToLong(value, false);
-						if(ptr_encoding_rel==DW_EH_PE_PCREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
-						}else if(ptr_encoding_rel==DW_EH_PE_DATAREL){
-							analysis		+= "personality_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
-//						}else if(ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}
-					notes			= EH_FRAME_CIE_aug_operands_P_flag_personality_ptr_Notes;
-					beforesize		= size;
-					count			+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_P_flag_personality_ptr	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_P_flag_personality_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_P_flag_personality_ptr_Item	= new TreeItem<>(aug_operands_P_flag_personality_ptr);
-//					aug_operands_P_flag_personality_ptr_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_P_flag_personality_ptr_Item);
-				}
-
-
-				if(cie_L_flag){
+				if(fde_z_flag_length>0 && cie_L_flag){
 					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
 					name	= "aug_operands_L_flag_lsda_ptr_encoding";
 					rawAddr	+= beforesize;
@@ -22289,7 +23231,16 @@ public class ApplicationController implements Initializable {
 					if(lma!=0){
 						lma	+= beforesize;
 					}
-					size	= UINT8_T;
+					if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128){
+						uleb			= new ULEB128Result(data, offset);
+						vl				= uleb.getValue();
+						lsda_ptr_size	= uleb.getSize();
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
+						sleb			= new SLEB128Result(data, offset);
+						vl				= sleb.getValue();
+						lsda_ptr_size	= sleb.getSize();
+					}
+					size	= lsda_ptr_size;
 					value	= "";
 					if(ELFDATA==ELFDATA2LSB){	//LSB
 						for(int i=offset+size-1; i>=offset; i--){
@@ -22300,173 +23251,77 @@ public class ApplicationController implements Initializable {
 							value	+= String.format("%02X", data[i]).toUpperCase();
 						}
 					}
-					vb			= data[offset+size-1];
-					analysis	= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis				+= "absptr(0x0)";
-						lsda_ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis				+= "uleb128(0x1)";
-						lsda_ptr_encoding_type	= DW_EH_PE_ULEB128;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis				+= "udata2(0x2)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA2;
-						lsda_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis				+= "udata4(0x3)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA4;
-						lsda_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis				+= "udata8(0x4)";
-						lsda_ptr_encoding_type	= DW_EH_PE_UDATA8;
-						lsda_ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis				+= "sleb128(0x9)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SLEB128;
-						lsda_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis				+= "sdata2(0xa)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA2;
-						lsda_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis				+= "sdata4(0xb)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA4;
-						lsda_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis				+= "sdata8(0xc)";
-						lsda_ptr_encoding_type	= DW_EH_PE_SDATA8;
-						lsda_ptr_size			= 8;
-					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis				+= ", pcrel(0x10)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis				+= ", textrel(0x20)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis				+= ", datarel(0x30)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis				+= ", funcrel(0x40)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis				+= ", aligned(0x50)";
-						lsda_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes		= EH_FRAME_CIE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord aug_operands_L_flag_lsda_ptr_encoding	= null;
-					if(rva!=0 && lma!=0){
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(aug_operands_L_flag_lsda_ptr_encoding);
-//					aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_L_flag_lsda_ptr_encoding_Item);
-				}
-
-
-				if(cie_R_flag){
-					//0xXX	aug_operands[] R_flag	uint8_t	fde_ptr_encoding
-					name	= "aug_operands_R_flag_fde_ptr_encoding";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT8_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					vb				= data[offset+size-1];
 					analysis		= "";
-					if((vb&0xf)==DW_EH_PE_ABSPTR){
-						analysis		+= "absptr(0x0)";
-						fde_ptr_encoding_type	= DW_EH_PE_ABSPTR;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_ULEB128){
-						analysis		+= "uleb128(0x1)";
-						fde_ptr_encoding_type	= DW_EH_PE_ULEB128;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_UDATA2){
-						analysis		+= "udata2(0x2)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA2;
-						fde_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_UDATA4){
-						analysis		+= "udata4(0x3)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA4;
-						fde_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_UDATA8){
-						analysis		+= "udata8(0x4)";
-						fde_ptr_encoding_type	= DW_EH_PE_UDATA8;
-						fde_ptr_size			= 8;
-					}else if((vb&0xf)==DW_EH_PE_SLEB128){
-						analysis		+= "sleb128(0x9)";
-						fde_ptr_encoding_type	= DW_EH_PE_SLEB128;
-						fde_ptr_size			= 0;
-					}else if((vb&0xf)==DW_EH_PE_SDATA2){
-						analysis		+= "sdata2(0xa)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA2;
-						fde_ptr_size			= 2;
-					}else if((vb&0xf)==DW_EH_PE_SDATA4){
-						analysis		+= "sdata4(0xb)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA4;
-						fde_ptr_size			= 4;
-					}else if((vb&0xf)==DW_EH_PE_SDATA8){
-						analysis		+= "sdata8(0xc)";
-						fde_ptr_encoding_type	= DW_EH_PE_SDATA8;
-						fde_ptr_size			= 8;
+					if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128 || lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA2 || lsda_ptr_encoding_type==DW_EH_PE_SDATA2){
+						v	= getStringToInt(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA4 || lsda_ptr_encoding_type==DW_EH_PE_SDATA4){
+						v	= getStringToInt(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
+					}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA8 || lsda_ptr_encoding_type==DW_EH_PE_SDATA8){
+						vl	= getStringToLong(value, false);
+						if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+						}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+							analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+vl)).toUpperCase();
+//						}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
+
+						}
 					}
-					if((vb&0xf0)==DW_EH_PE_PCREL){
-						analysis				+= ", pcrel(0x10)";
-						fde_ptr_encoding_rel	= DW_EH_PE_PCREL;
-					}else if((vb&0xf0)==DW_EH_PE_TEXTREL){
-						analysis				+= ", textrel(0x20)";
-						fde_ptr_encoding_rel	= DW_EH_PE_TEXTREL;
-					}else if((vb&0xf0)==DW_EH_PE_DATAREL){
-						analysis				+= ", datarel(0x30)";
-						fde_ptr_encoding_rel	= DW_EH_PE_DATAREL;
-					}else if((vb&0xf0)==DW_EH_PE_FUNCREL){
-						analysis				+= ", funcrel(0x40)";
-						fde_ptr_encoding_rel	= DW_EH_PE_FUNCREL;
-					}else if((vb&0xf0)==DW_EH_PE_ALIGNED){
-						analysis				+= ", aligned(0x50)";
-						fde_ptr_encoding_rel	= DW_EH_PE_ALIGNED;
-					}
-					notes			= EH_FRAME_CIE_aug_operands_R_flag_fde_ptr_encoding_Notes;
+					notes			= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
 					beforesize		= size;
 					count			+= size;
 
-					EPlusViewerTreeTableRecord aug_operands_R_flag_fde_ptr_encoding	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
 					if(rva!=0 && lma!=0){
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						aug_operands_R_flag_fde_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> aug_operands_R_flag_fde_ptr_encoding_Item	= new TreeItem<>(aug_operands_R_flag_fde_ptr_encoding);
-//					aug_operands_R_flag_fde_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(aug_operands_R_flag_fde_ptr_encoding_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
+//					fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
 				}
+
+				fde_z_flag_length = 0;
 
 
 				//0xXX	uint8_t	dw_cfa_bytecode[]
@@ -22480,7 +23335,7 @@ public class ApplicationController implements Initializable {
 				if(lma!=0){
 					lma	+= beforesize;
 				}
-				size	= cie_length+UINT32_T-(offset-baseOffset);
+				size	= fde_length+UINT32_T-(offset-baseOffset);
 				value	= "";
 				if(ELFDATA==ELFDATA2LSB){	//LSB
 					for(int i=offset+size-1; i>=offset; i--){
@@ -22509,8 +23364,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (long)(startRva+ptr.getValue());
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (long)(fde_func_start_addr+ptr.getValue());
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -22530,8 +23386,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (long)(startRva+v);
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (long)(fde_func_start_addr+v);
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -22551,8 +23408,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (long)(startRva+v);
 								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (long)(fde_func_start_addr+v);
+								analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -22572,8 +23430,9 @@ public class ApplicationController implements Initializable {
 							}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
 								loc_addr	= (long)(startRva+vl);
 								analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-//							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
+							}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
+								loc_addr	= (long)(fde_func_start_addr+vl);
+								analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
 //							}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
 
 							}
@@ -22644,7 +23503,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "def_cfa_expression "+len.getValue()+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
 						pos++;
@@ -22718,7 +23577,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
 						pos++;
@@ -22727,7 +23586,7 @@ public class ApplicationController implements Initializable {
 						ULEB128Result len	= new ULEB128Result(data, offset+pos);
 						pos					+= len.getSize();
 						analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
-						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, 0);
+						analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
 						pos					+= len.getValue();
 					}else if(eMachine==EM_X86_64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
 						int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
@@ -22776,796 +23635,31 @@ public class ApplicationController implements Initializable {
 						break;
 					}
 				}
-				notes		= EH_FRAME_CIE_dw_cfa_bytecode_Notes;
+				notes		= EH_FRAME_FDE_dw_cfa_bytecode_Notes;
 				beforesize	= size;
 				count		+= size;
 
-				EPlusViewerTreeTableRecord dw_cfa_bytecode	= null;
+				EPlusViewerTreeTableRecord fde_dw_cfa_bytecode	= null;
 				if(rva!=0 && lma!=0){
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else if(rva!=0){
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}else{
-					dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 				}
-				TreeItem<EPlusViewerTreeTableRecord> dw_cfa_bytecode_Item	= new TreeItem<>(dw_cfa_bytecode);
-//				dw_cfa_bytecode_Item.setExpanded(true);
-				EH_FRAME_CIE_Item.getChildren().add(dw_cfa_bytecode_Item);
+				TreeItem<EPlusViewerTreeTableRecord> fde_dw_cfa_bytecode_Item	= new TreeItem<>(fde_dw_cfa_bytecode);
+//				fde_dw_cfa_bytecode_Item.setExpanded(true);
+				EH_FRAME_FDE_Item.getChildren().add(fde_dw_cfa_bytecode_Item);
 
 
-				while(fdeOffsetMap!=null && fdeOffsetMap.containsKey((long)(offset+size))){
-					//fde
-					name		= "FRAME_DESCRIPTION_ENTRY["+String.format("%08X", offset+size).toUpperCase()+"]";
-					rawAddr		+= beforesize;
-					raw			= rawAddr;
-					offset		+= beforesize;
-					if(rva!=0){
-						rva		+= beforesize;
-					}
-					if(lma!=0){
-						lma		+= beforesize;
-					}
-					size		= 0;
-					value		= "";
-					analysis	= "";
-					notes		= EH_FRAME_FDE_Notes;
-					beforesize	= 0;
-					baseOffset	= offset;
-
-					EPlusViewerTreeTableRecord EH_FRAME_FDE	= null;
-					if(rva!=0 && lma!=0){
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				if(count<=dataSize && count+ELF64_ADDR_SIZE>=dataSize){	//終端なら
+					if((offset+size)%ELF64_ADDR_SIZE==0){
+						count	+=	ELF64_ADDR_SIZE;
 					}else{
-						EH_FRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> EH_FRAME_FDE_Item 	= new TreeItem<>(EH_FRAME_FDE);
-//					EH_FRAME_FDE_Item.setExpanded(true);
-					EH_FRAME_CIE_Item.getChildren().add(EH_FRAME_FDE_Item);
-
-
-					//0x00	UINT32_T	length
-					name	= "length";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= UINT32_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					fde_length	= v;
-					analysis	= "";
-					analysis	+= v+" bytes";
-					notes		= EH_FRAME_FDE_length_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord fdelength	= null;
-					if(rva!=0 && lma!=0){
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						fdelength	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> fdelength_Item	= new TreeItem<>(fdelength);
-//					fdelength_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fdelength_Item);
-
-					//サイズをアップデート
-					EH_FRAME_FDE.setSize(String.format("%08X", fde_length+UINT32_T).toUpperCase());
-
-
-					//0x04	INT32_T	negated_cie_offset
-					name	= "negated_cie_offset";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= INT32_T;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					analysis	= "";
-					analysis	+= v;
-					notes		= EH_FRAME_FDE_negated_cie_offset_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord negated_cie_offset	= null;
-					if(rva!=0 && lma!=0){
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						negated_cie_offset	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> negated_cie_offset_Item	= new TreeItem<>(negated_cie_offset);
-//					negated_cie_offset_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(negated_cie_offset_Item);
-
-
-					//0x08	UINT8_T	func_start[]
-					name	= "func_start";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb			= new ULEB128Result(data, offset);
-						vl				= uleb.getValue();
-						fde_ptr_size	= uleb.getSize();
-					}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb			= new SLEB128Result(data, offset);
-						vl				= sleb.getValue();
-						fde_ptr_size	= sleb.getSize();
-					}
-					size	= fde_ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					fde_func_start_addr	= 0;
-					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (long)(rva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (long)(vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (long)(startRva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
-						v	= getStringToInt(value, false);
-						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (long)(rva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (long)(v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (long)(startRva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
-						v	= getStringToInt(value, false);
-						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (long)(rva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (long)(v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (long)(startRva+v);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
-						vl	= getStringToLong(value, false);
-						if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-							fde_func_start_addr	= (long)(rva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-							fde_func_start_addr	= (long)(vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-						}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-							fde_func_start_addr	= (long)(startRva+vl);
-							analysis		+= "func_start(VMA)=0x"+String.format("%016X", fde_func_start_addr).toUpperCase();
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-
-//						}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-						}
-					}
-					notes		= EH_FRAME_FDE_func_start_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord func_start	= null;
-					if(rva!=0 && lma!=0){
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						func_start	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> func_start_Item	= new TreeItem<>(func_start);
-//					func_start_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(func_start_Item);
-
-
-					//0xXX	UINT8_T	func_length[]
-					name	= "func_length";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					if(fde_ptr_encoding_type==DW_EH_PE_ULEB128){
-						uleb			= new ULEB128Result(data, offset);
-						vl				= uleb.getValue();
-						fde_ptr_size	= uleb.getSize();
-					}else if(fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-						sleb			= new SLEB128Result(data, offset);
-						vl				= sleb.getValue();
-						fde_ptr_size	= sleb.getSize();
-					}
-					size	= fde_ptr_size;
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					v			= getStringToInt(value, false);
-					fde_func_length	= v;
-					analysis	= "";
-					analysis	+= v+" bytes\n";
-					analysis	+= "func_end(VMA)=0x"+String.format("%016X", (int)(fde_func_start_addr+fde_func_length)).toUpperCase();
-					notes		= EH_FRAME_FDE_func_length_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord func_length	= null;
-					if(rva!=0 && lma!=0){
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						func_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> func_length_Item	= new TreeItem<>(func_length);
-//					func_length_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(func_length_Item);
-
-
-					if(cie_z_flag){
-						//0xXX	aug_operands[] z_flag	uleb128	length
-						name	= "aug_operands_z_flag_length";
-						rawAddr	+= beforesize;
-						raw		= rawAddr;
-						offset	+= beforesize;
-						if(rva!=0){
-							rva	+= beforesize;
-						}
-						if(lma!=0){
-							lma	+= beforesize;
-						}
-						uleb	= new ULEB128Result(data, offset);
-						vl		= uleb.getValue();
-						size	= uleb.getSize();
-						value	= "";
-						if(ELFDATA==ELFDATA2LSB){	//LSB
-							for(int i=offset+size-1; i>=offset; i--){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}else{	//MSB
-							for(int i=offset; i<offset+size; i++){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}
-						cie_z_flag_length	= (int)vl;
-						analysis		= "";
-						analysis		+= vl+" bytes";
-						notes			= EH_FRAME_FDE_aug_operands_z_flag_length_Notes;
-						beforesize		= size;
-						count			+= size;
-
-						EPlusViewerTreeTableRecord fde_aug_operands_z_flag_length	= null;
-						if(rva!=0 && lma!=0){
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else if(rva!=0){
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else{
-							fde_aug_operands_z_flag_length	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}
-						TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_z_flag_length_Item	= new TreeItem<>(fde_aug_operands_z_flag_length);
-//						fde_aug_operands_z_flag_length_Item.setExpanded(true);
-						EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_z_flag_length_Item);
+						count	+=	ELF64_ADDR_SIZE-((offset+size)%ELF64_ADDR_SIZE);
 					}
 
-
-					if(fde_z_flag_length>0 && cie_L_flag){
-						//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
-						name	= "aug_operands_L_flag_lsda_ptr_encoding";
-						rawAddr	+= beforesize;
-						raw		= rawAddr;
-						offset	+= beforesize;
-						if(rva!=0){
-							rva	+= beforesize;
-						}
-						if(lma!=0){
-							lma	+= beforesize;
-						}
-						if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128){
-							uleb			= new ULEB128Result(data, offset);
-							vl				= uleb.getValue();
-							lsda_ptr_size	= uleb.getSize();
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
-							sleb			= new SLEB128Result(data, offset);
-							vl				= sleb.getValue();
-							lsda_ptr_size	= sleb.getSize();
-						}
-						size	= lsda_ptr_size;
-						value	= "";
-						if(ELFDATA==ELFDATA2LSB){	//LSB
-							for(int i=offset+size-1; i>=offset; i--){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}else{	//MSB
-							for(int i=offset; i<offset+size; i++){
-								value	+= String.format("%02X", data[i]).toUpperCase();
-							}
-						}
-						analysis		= "";
-						if(lsda_ptr_encoding_type==DW_EH_PE_ULEB128 || lsda_ptr_encoding_type==DW_EH_PE_SLEB128){
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA2 || lsda_ptr_encoding_type==DW_EH_PE_SDATA2){
-							v	= getStringToInt(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA4 || lsda_ptr_encoding_type==DW_EH_PE_SDATA4){
-							v	= getStringToInt(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+v)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}else if(lsda_ptr_encoding_type==DW_EH_PE_UDATA8 || lsda_ptr_encoding_type==DW_EH_PE_SDATA8){
-							vl	= getStringToLong(value, false);
-							if(lsda_ptr_encoding_rel==DW_EH_PE_PCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_DATAREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
-							}else if(lsda_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-								analysis		+= "lsda_ptr(VMA)=0x"+String.format("%016X", (long)(fde_func_start_addr+vl)).toUpperCase();
-//							}else if(lsda_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-							}
-						}
-						notes			= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
-						beforesize		= size;
-						count			+= size;
-
-						EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
-						if(rva!=0 && lma!=0){
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else if(rva!=0){
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}else{
-							fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-						}
-						TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
-//						fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-						EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
-					}
-
-					fde_z_flag_length = 0;
-
-
-					//0xXX	uint8_t	dw_cfa_bytecode[]
-					name	= "dw_cfa_bytecode";
-					rawAddr	+= beforesize;
-					raw		= rawAddr;
-					offset	+= beforesize;
-					if(rva!=0){
-						rva	+= beforesize;
-					}
-					if(lma!=0){
-						lma	+= beforesize;
-					}
-					size	= fde_length+UINT32_T-(offset-baseOffset);
-					value	= "";
-					if(ELFDATA==ELFDATA2LSB){	//LSB
-						for(int i=offset+size-1; i>=offset; i--){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}else{	//MSB
-						for(int i=offset; i<offset+size; i++){
-							value	+= String.format("%02X", data[i]).toUpperCase();
-						}
-					}
-					analysis	= "";
-					pos			= 0;
-					loc_addr	= fde_func_start_addr;
-					while(pos<size){
-						if((byte)data[offset+pos]==(byte)DW_CFA_set_loc){	//opcode:0x01	DW_CFA_set_loc(uint8_t Ptr[])
-							pos++;
-							if(fde_ptr_encoding_type==DW_EH_PE_ULEB128 || fde_ptr_encoding_type==DW_EH_PE_SLEB128){
-								SLEB128Result ptr	= new SLEB128Result(data, offset+pos);
-								pos					+= ptr.getSize();
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (long)(rva+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (long)(ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (long)(startRva+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (long)(fde_func_start_addr+ptr.getValue());
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA2 || fde_ptr_encoding_type==DW_EH_PE_SDATA2){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								v	= getStringToInt(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (long)(rva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (long)(v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (long)(startRva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (long)(fde_func_start_addr+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)loc_addr).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA4 || fde_ptr_encoding_type==DW_EH_PE_SDATA4){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								v	= getStringToInt(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (long)(rva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (long)(v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (long)(startRva+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (long)(fde_func_start_addr+v);
-									analysis	+= "set_loc 0x"+String.format("%08X", (int)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}else if(fde_ptr_encoding_type==DW_EH_PE_UDATA8 || fde_ptr_encoding_type==DW_EH_PE_SDATA8){
-								String strPtr	= "";
-								for(int i=offset+pos+fde_ptr_size-1; i>=offset+pos; i--){
-									strPtr	+= String.format("%02X", data[i]).toUpperCase();
-								}
-								pos	+= fde_ptr_size;
-								vl	= getStringToLong(strPtr, false);
-								if(fde_ptr_encoding_rel==DW_EH_PE_PCREL){
-									loc_addr	= (long)(rva+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_TEXTREL){
-									loc_addr	= (long)(vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_DATAREL){
-									loc_addr	= (long)(startRva+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-								}else if(fde_ptr_encoding_rel==DW_EH_PE_FUNCREL){
-									loc_addr	= (long)(fde_func_start_addr+vl);
-									analysis	+= "set_loc 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+")\n";
-//								}else if(fde_ptr_encoding_rel==DW_EH_PE_ALIGNED){
-
-								}
-							}
-						}else if((byte)data[offset+pos]>=(byte)DW_CFA_advance_loc && (byte)data[offset+pos]<=(byte)(DW_CFA_advance_loc+0x3f)){	//opcode:0x40+Off	DW_CFA_advance_loc
-							int off		= 0;
-							off			= (int)((data[offset+pos]-DW_CFA_advance_loc)&0xff);
-							loc_addr	+= off*cie_code_align;
-							pos++;
-							analysis	+= "advance_loc "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc1){	//opcode:0x02	DW_CFA_advance_loc1(uint8_t Off)
-							pos++;
-							int off		= (int)(data[offset+pos]&0xff);
-							pos			+= UINT8_T;
-							loc_addr	+= off*cie_code_align;
-							analysis	+= "advance_loc1 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc2){	//opcode:0x03	DW_CFA_advance_loc2(uint16_t Off)
-							pos++;
-							String strOff	= "";
-							for(int i=offset+pos+UINT16_T-1; i>=offset+pos; i--){
-								strOff	+= String.format("%02X", data[i]).toUpperCase();
-							}
-							int off		= getStringToInt(strOff, false);
-							loc_addr	+= off*cie_code_align;
-							pos			+= UINT16_T;
-							analysis	+= "advance_loc2 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_advance_loc4){	//opcode:0x04	DW_CFA_advance_loc4(uint32_t Off)
-							pos++;
-							String strOff	= "";
-							for(int i=offset+pos+UINT32_T-1; i>=offset+pos; i--){
-								strOff	+= String.format("%02X", data[i]).toUpperCase();
-							}
-							int off	= getStringToInt(strOff, false);
-							loc_addr	+= off*cie_code_align;
-							pos			+= UINT32_T;
-							analysis	+= "advance_loc4 "+off+" to 0x"+String.format("%016X", (long)(loc_addr)).toUpperCase()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa){	//opcode:0x0c	DW_CFA_def_cfa(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_sf){	//opcode:0x12	DW_CFA_def_cfa_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_sf "+getDwRegistryName((int)reg.getValue())+" at offset "+off.getValue()+")\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_register){	//opcode:0x0d	DW_CFA_def_cfa_register(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "def_cfa_register "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset){	//opcode:0x0e	DW_CFA_def_cfa_offset(uleb128 Off)
-							pos++;
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_offset "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_offset_sf){	//opcode:0x13	DW_CFA_def_cfa_offset_sf(sleb128 Off)
-							pos++;
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "def_cfa_offset_sf "+off.getValue()+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_def_cfa_expression){	//opcode:0x0f	DW_CFA_def_cfa_expression(uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "def_cfa_expression "+len.getValue()+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if((byte)data[offset+pos]==DW_CFA_undefined){	//opcode:0x07	DW_CFA_undefined(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "undefined "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==DW_CFA_same_value){	//opcode:0x08	DW_CFA_same_value(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "same_value "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if(eMachine==EM_X86_64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_offset && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x10)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
-							pos++;
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
-						}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_offset && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_offset+0x1f)&0xff)){	//opcode:0x0x80+Reg		DW_CFA_offset(uleb128 Off)
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_offset;
-							pos++;
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset "+getDwRegistryName(reg)+" at cfa"+off.getValue()*cie_data_align+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended){	//opcode:0x05		DW_CFA_offset_extended(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_offset_extended_sf){	//opcode:0x11	DW_CFA_offset_extended_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "offset_extended_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset){	//opcode:0x14	DW_CFA_val_offset(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-
-
-							analysis			+= "val_offset "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-
-
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_offset_sf){	//opcode:0x15	DW_CFA_val_offset_sf(uleb128 Reg, sleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							SLEB128Result off	= new SLEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-
-
-							analysis			+= "val_offset_sf "+getDwRegistryName((int)reg.getValue())+" at cfa"+((off.getValue()*cie_data_align>0)?"+"+off.getValue()*cie_data_align:off.getValue()*cie_data_align)+"\n";
-
-
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_register){	//opcode:0x09	DW_CFA_register(uleb128 Reg, uleb128 Src)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result src	= new ULEB128Result(data, offset+pos);
-							pos					+= src.getSize();
-							analysis			+= "register "+getDwRegistryName((int)reg.getValue())+" in "+getDwRegistryName((int)src.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_expression){	//opcode:0x10	DW_CFA_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "expression "+getDwRegistryName((int)reg.getValue())+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_val_expression){	//opcode:0x16	DW_CFA_val_expression(uleb128 Reg, uleb128 Len, uint8_t DwOpBytecode[Len])
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result len	= new ULEB128Result(data, offset+pos);
-							pos					+= len.getSize();
-							analysis			+= "val_expression "+getDwRegistryName((int)reg.getValue())+"\n";
-							analysis			+= analyzeDwExpression(data, offset+pos, (int)len.getValue(), startRva, rva, fde_func_start_addr);
-							pos					+= len.getValue();
-						}else if(eMachine==EM_X86_64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x10)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
-							pos++;
-							analysis			+= "restore "+getDwRegistryName(reg)+"\n";
-						}else if(eMachine==EM_AARCH64 && (int)(data[offset+pos]&0xff)>=(int)DW_CFA_restore && (int)(data[offset+pos]&0xff)<=(int)((DW_CFA_restore+0x1f)&0xff)){	//opcode:0xc0+Reg	DW_CFA_restore
-							int reg		= (int)(data[offset+pos]&0xff)-DW_CFA_restore;
-							pos++;
-							analysis			+= "restore "+getDwRegistryName(reg)+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_extended){	//opcode:0x06	DW_CFA_restore_extended(uleb128 Reg)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							analysis			+= "restore_extended "+getDwRegistryName((int)reg.getValue())+"\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_remember_state){	//opcode:0x0a	DW_CFA_remember_state
-							pos++;
-							analysis			+= "remember_state\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_restore_state){	//opcode:0x0b	DW_CFA_restore_state
-							pos++;
-							analysis			+= "restore_state\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
-							pos++;
-							analysis			+= "nop\n";
-						}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
-							pos++;
-							ULEB128Result reg	= new ULEB128Result(data, offset+pos);
-							pos					+= reg.getSize();
-							ULEB128Result off	= new ULEB128Result(data, offset+pos);
-							pos					+= off.getSize();
-							analysis			+= "gnu_negative_offset_extended "+getDwRegistryName((int)reg.getValue())+" at cfa"+((-(off.getValue()*cie_data_align)>0)?"+"+(-(off.getValue()*cie_data_align)):(-(off.getValue()*cie_data_align)))+"\n";
-						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state){	//opcode:0x2b	DW_CFA_AARCH64_negate_ra_state
-							pos++;
-							analysis			+= "AARCH64_negate_ra_state\n";
-						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_negate_ra_state_with_pc){	//opcode:0x2c	DW_CFA_AARCH64_negate_ra_state_with_pc
-							pos++;
-							analysis			+= "AARCH64_negate_ra_state_with_pc\n";
-						}else if(eMachine==EM_AARCH64 && (byte)data[offset+pos]==(byte)DW_CFA_AARCH64_set_ra_state){	//opcode:0x2d	DW_CFA_AARCH64_set_ra_state(ULEB128 ra_state, SLEB128 offset)
-							pos++;
-							ULEB128Result ra_state	= new ULEB128Result(data, offset+pos);
-							pos						+= ra_state.getSize();
-							ULEB128Result off		= new ULEB128Result(data, offset+pos);
-							pos						+= off.getSize();
-							analysis				+= "AARCH64_set_ra_state "+Long.toUnsignedString(ra_state.getValue())+" "+off.getValue()*cie_code_align+"\n";
-						}else{
-							analysis			+= "unknown opcode:0x"+String.format("%02X", (byte)data[offset+pos]).toUpperCase()+"\n";
-							break;
-						}
-					}
-					notes		= EH_FRAME_FDE_dw_cfa_bytecode_Notes;
-					beforesize	= size;
-					count		+= size;
-
-					EPlusViewerTreeTableRecord fde_dw_cfa_bytecode	= null;
-					if(rva!=0 && lma!=0){
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else if(rva!=0){
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}else{
-						fde_dw_cfa_bytecode	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-					}
-					TreeItem<EPlusViewerTreeTableRecord> fde_dw_cfa_bytecode_Item	= new TreeItem<>(fde_dw_cfa_bytecode);
-//					fde_dw_cfa_bytecode_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fde_dw_cfa_bytecode_Item);
-
-					//ゼロ終端チェック
-					if(count<dataSize && data[offset+size-1]=='\0'){
-						if((offset+size)%ELF64_ADDR_SIZE==0){
-							count	+=	ELF64_ADDR_SIZE;
-						}else{
-							count	+=	ELF64_ADDR_SIZE-((offset+size)%ELF64_ADDR_SIZE);
-						}
-					}
+					break;
 				}
 			}
 		}
