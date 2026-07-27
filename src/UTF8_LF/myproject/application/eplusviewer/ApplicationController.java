@@ -463,7 +463,7 @@ public class ApplicationController implements Initializable {
 	private String EH_FRAME_FDE_func_start_Notes							= "";
 	private String EH_FRAME_FDE_func_length_Notes							= "";
 	private String EH_FRAME_FDE_aug_operands_z_flag_length_Notes			= "";
-	private String EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes	= "";
+	private String EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_Notes			= "";
 	private String EH_FRAME_FDE_aug_operands_Notes							= "";
 	private String EH_FRAME_FDE_dw_cfa_bytecode_Notes						= "";
 	private String EH_FRAME_FDE_zero_padding_Notes							= "";
@@ -936,6 +936,7 @@ public class ApplicationController implements Initializable {
 
 	private final static int DW_CFA_nop								= 0x00;
 
+	private final static int DW_CFA_GNU_args_size					= 0x2e;
 	private final static int DW_CFA_GNU_negative_offset_extended	= 0x2f;
 
 	private final static int DW_CFA_AARCH64_set_ra_state			= 0x2b;	//aarch64 (Alpha)
@@ -20628,6 +20629,11 @@ public class ApplicationController implements Initializable {
 				}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
 					pos++;
 					analysis			+= "nop\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_args_size){	//opcode:0x2e	DW_CFA_GNU_args_size(uleb128 Size)
+					pos++;
+					ULEB128Result args_size	= new ULEB128Result(data, offset+pos);
+					pos						+= args_size.getSize();
+					analysis			+= "gnu_args_size "+(int)args_size.getValue()+"\n";
 				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
 					pos++;
 					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
@@ -21023,8 +21029,8 @@ public class ApplicationController implements Initializable {
 
 
 				if(fde_z_flag_length>0 && cie_L_flag){
-					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
-					name	= "aug_operands_L_flag_lsda_ptr_encoding";
+					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr
+					name	= "aug_operands_L_flag_lsda_ptr";
 					rawAddr	+= beforesize;
 					raw		= rawAddr;
 					offset	+= beforesize;
@@ -21107,21 +21113,21 @@ public class ApplicationController implements Initializable {
 
 						}
 					}
-					notes		= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
+					notes		= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_Notes;
 					beforesize	= size;
 					count		+= size;
 
-					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr	= null;
 					if(rva!=0 && lma!=0){
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
-//					fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr);
+//					fde_aug_operands_L_flag_lsda_ptr_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_Item);
 				}
 
 				fde_z_flag_length = 0;
@@ -21403,6 +21409,11 @@ public class ApplicationController implements Initializable {
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
 						pos++;
 						analysis			+= "nop\n";
+					}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_args_size){	//opcode:0x2e	DW_CFA_GNU_args_size(uleb128 Size)
+						pos++;
+						ULEB128Result args_size	= new ULEB128Result(data, offset+pos);
+						pos						+= args_size.getSize();
+						analysis			+= "gnu_args_size "+(int)args_size.getValue()+"\n";
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
 						pos++;
 						ULEB128Result reg	= new ULEB128Result(data, offset+pos);
@@ -22810,6 +22821,11 @@ public class ApplicationController implements Initializable {
 				}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
 					pos++;
 					analysis			+= "nop\n";
+				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_args_size){	//opcode:0x2e	DW_CFA_GNU_args_size(uleb128 Size)
+					pos++;
+					ULEB128Result args_size	= new ULEB128Result(data, offset+pos);
+					pos						+= args_size.getSize();
+					analysis			+= "gnu_args_size "+(int)args_size.getValue()+"\n";
 				}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
 					pos++;
 					ULEB128Result reg	= new ULEB128Result(data, offset+pos);
@@ -23198,7 +23214,7 @@ public class ApplicationController implements Initializable {
 							value	+= String.format("%02X", data[i]).toUpperCase();
 						}
 					}
-					cie_z_flag_length	= (int)vl;
+					fde_z_flag_length	= (int)vl;
 					analysis		= "";
 					analysis		+= vl+" bytes";
 					notes			= EH_FRAME_FDE_aug_operands_z_flag_length_Notes;
@@ -23220,8 +23236,8 @@ public class ApplicationController implements Initializable {
 
 
 				if(fde_z_flag_length>0 && cie_L_flag){
-					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr_encoding
-					name	= "aug_operands_L_flag_lsda_ptr_encoding";
+					//0xXX	aug_operands[] L_flag	uint8_t	lsda_ptr
+					name	= "aug_operands_L_flag_lsda_ptr";
 					rawAddr	+= beforesize;
 					raw		= rawAddr;
 					offset	+= beforesize;
@@ -23304,21 +23320,21 @@ public class ApplicationController implements Initializable {
 
 						}
 					}
-					notes			= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_encoding_Notes;
+					notes			= EH_FRAME_FDE_aug_operands_L_flag_lsda_ptr_Notes;
 					beforesize		= size;
 					count			+= size;
 
-					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr_encoding	= null;
+					EPlusViewerTreeTableRecord fde_aug_operands_L_flag_lsda_ptr	= null;
 					if(rva!=0 && lma!=0){
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else if(rva!=0){
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}else{
-						fde_aug_operands_L_flag_lsda_ptr_encoding	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+						fde_aug_operands_L_flag_lsda_ptr	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
 					}
-					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_encoding_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr_encoding);
-//					fde_aug_operands_L_flag_lsda_ptr_encoding_Item.setExpanded(true);
-					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_encoding_Item);
+					TreeItem<EPlusViewerTreeTableRecord> fde_aug_operands_L_flag_lsda_ptr_Item	= new TreeItem<>(fde_aug_operands_L_flag_lsda_ptr);
+//					fde_aug_operands_L_flag_lsda_ptr_Item.setExpanded(true);
+					EH_FRAME_FDE_Item.getChildren().add(fde_aug_operands_L_flag_lsda_ptr_Item);
 				}
 
 				fde_z_flag_length = 0;
@@ -23610,6 +23626,11 @@ public class ApplicationController implements Initializable {
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_nop){	//opcode:0x00	DW_CFA_nop
 						pos++;
 						analysis			+= "nop\n";
+					}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_args_size){	//opcode:0x2e	DW_CFA_GNU_args_size(uleb128 Size)
+						pos++;
+						ULEB128Result args_size	= new ULEB128Result(data, offset+pos);
+						pos						+= args_size.getSize();
+						analysis			+= "gnu_args_size "+(int)args_size.getValue()+"\n";
 					}else if((byte)data[offset+pos]==(byte)DW_CFA_GNU_negative_offset_extended){	//opcode:0x2f	DW_CFA_GNU_negative_offset_extended(uleb128 Reg, uleb128 Off)
 						pos++;
 						ULEB128Result reg	= new ULEB128Result(data, offset+pos);
