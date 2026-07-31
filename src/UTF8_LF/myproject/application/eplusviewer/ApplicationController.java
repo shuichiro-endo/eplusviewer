@@ -1160,11 +1160,11 @@ public class ApplicationController implements Initializable {
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		//機能停止
-		idFileExport.setDisable(true);
+/*		idFileExport.setDisable(true);
 		idBinTable.setEditable(false);
 		idRerun.setDisable(true);
 		idDump.setDisable(true);
-		idDisasm.setDisable(true);
+		idDisasm.setDisable(true);*/
 	}
 
 	protected byte[] parseHexBinary(String s){
@@ -24299,7 +24299,7 @@ public class ApplicationController implements Initializable {
 
 				raw		= rawAddr;
 				rva		= getStringToInt(lsdaVaddr, false);
-				strLma	= getVaddrToPaddr(lsdaVaddr);
+				strLma	= getVaddrToPaddr(String.format("%08X", rva).toUpperCase());
 				if(strLma!=null){
 					lma	= getStringToInt(strLma, false);
 				}
@@ -25556,9 +25556,9 @@ public class ApplicationController implements Initializable {
 
 				raw		= rawAddr;
 				rva		= getStringToLong(lsdaVaddr, false);
-				strLma	= getVaddrToPaddr(lsdaVaddr);
+				strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
 				if(strLma!=null){
-					lma	= getStringToInt(strLma, false);
+					lma	= getStringToLong(strLma, false);
 				}
 				offset	= raw-startAddr32;
 

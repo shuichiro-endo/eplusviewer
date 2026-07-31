@@ -38,7 +38,7 @@ java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "E+Viewer3.0.10.jar"
+    java -Xmx4g -jar "E+Viewer3.0.11.jar"
     ```
 1. Open ELF File([File]-[FileOpen])
 
@@ -65,7 +65,7 @@ java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls
 
 ## Additional Functions
 
-You can use some functions if you input the following key in InputKey Dialog([Help]-[InputKey]).
+~~You can use some functions if you input the following key in InputKey Dialog([Help]-[InputKey]).~~
 
 - Key
     ```
