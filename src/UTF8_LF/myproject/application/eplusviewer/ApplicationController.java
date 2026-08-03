@@ -496,6 +496,58 @@ public class ApplicationController implements Initializable {
 	private String LANGUAGE_SPECIFIC_DATA_AREA_TTYPE_TABLE_Notes				= "";
 	private String LANGUAGE_SPECIFIC_DATA_AREA_TTYPE_TABLE_filter_value_Notes	= "";
 
+	//sframe_header (.sframe)
+	private String SFRAME_HEADER_Notes	= "";
+	private String SFRAME_HEADER_sfh_abi_arch_Notes				= "";
+	private String SFRAME_HEADER_sfh_cfa_fixed_fp_offset_Notes	= "";
+	private String SFRAME_HEADER_sfh_cfa_fixed_ra_offset_Notes	= "";
+	private String SFRAME_HEADER_sfh_auxhdr_len_Notes			= "";
+	private String SFRAME_HEADER_sfh_num_fdes_Notes				= "";
+	private String SFRAME_HEADER_sfh_num_fres_Notes				= "";
+	private String SFRAME_HEADER_sfh_fre_len_Notes				= "";
+	private String SFRAME_HEADER_sfh_fdeoff_Notes				= "";
+	private String SFRAME_HEADER_sfh_freoff_Notes				= "";
+
+	//sframe_preamble (.sframe)
+	private String SFRAME_HEADER_SFRAME_PREAMBLE_Notes				= "";
+	private String SFRAME_HEADER_SFRAME_PREAMBLE_sfp_magic_Notes	= "";
+	private String SFRAME_HEADER_SFRAME_PREAMBLE_sfp_version_Notes	= "";
+	private String SFRAME_HEADER_SFRAME_PREAMBLE_sfp_flags_Notes	= "";
+
+	//sframe_fde (.sframe)
+	private String SFRAME_FDE_Notes	= "";
+
+	//sframe_func_desc_idx (.sframe)
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_Notes							= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_sfdi_func_start_offset_Notes		= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_sfdi_func_size_Notes				= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_sfdi_func_start_fre_off_Notes	= "";
+
+	//sframe_func_desc_attr (.sframe)
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_Notes						= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_num_fres_Notes	= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_info_Notes		= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_info2_Notes		= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_rep_size_Notes	= "";
+
+	//sframe_fre (.sframe)
+	private String SFRAME_FRE_Notes	= "";
+
+	//sframe_frame_row_entry_addr1 (.sframe)
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_Notes					= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_start_address_Notes	= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_info_Notes			= "";
+
+	//sframe_frame_row_entry_addr2 (.sframe)
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR2_Notes					= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR2_sfre_start_address_Notes	= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR2_sfre_info_Notes			= "";
+
+	//sframe_frame_row_entry_addr4 (.sframe)
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_Notes					= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_sfre_start_address_Notes	= "";
+	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_sfre_info_Notes			= "";
+
 	//Data notes
 	private String Data_Notes								= "";
 
@@ -1033,12 +1085,49 @@ public class ApplicationController implements Initializable {
 	private final static int DW_OP_AARCH64_operation	= 0xea;	//0xea+SubOP
 	private final static int DW_SUB_OP_AARCH64_sign		= 0x00;
 
-
 	//eh_region_type
 	private final static int ERT_CLEANUP			= 0;
 	private final static int ERT_TRY				= 1;
 	private final static int ERT_ALLOWED_EXCEPTIONS	= 2;
 	private final static int ERT_MUST_NOT_THROW		= 3;
+
+	//sfp_version
+	private final static int SFRAME_VERSION_1		= 1;
+	private final static int SFRAME_VERSION_2		= 2;
+	private final static int SFRAME_VERSION_3		= 3;
+
+	//sfp_flags
+	private final static int SFRAME_F_FDE_SORTED			= 0x1;
+	private final static int SFRAME_F_FRAME_POINTER			= 0x2;
+	private final static int SFRAME_F_FDE_FUNC_START_PCREL	= 0x4;
+
+	//sfh_abi_arch
+	private final static int SFRAME_ABI_AARCH64_ENDIAN_BIG		= 1;
+	private final static int SFRAME_ABI_AARCH64_ENDIAN_LITTLE	= 2;
+	private final static int SFRAME_ABI_AMD64_ENDIAN_LITTLE		= 3;
+	private final static int SFRAME_ABI_S390X_ENDIAN_BIG		= 4;
+
+	//pauth_key
+	private final static int SFRAME_AARCH64_PAUTH_KEY_A	= 0;
+	private final static int SFRAME_AARCH64_PAUTH_KEY_B	= 1;
+
+	//fde_pctype
+	private final static int SFRAME_FDE_PCTYPE_INC	= 0;
+	private final static int SFRAME_FDE_PCTYPE_MASK	= 1;
+
+	//fde_type
+	private final static int SFRAME_FDE_TYPE_DEFAULT	= 1;
+	private final static int SFRAME_FDE_TYPE_FLEX		= 0;
+
+	//fre_type
+	private final static int SFRAME_FRE_TYPE_ADDR1	= 1;
+	private final static int SFRAME_FRE_TYPE_ADDR2	= 2;
+	private final static int SFRAME_FRE_TYPE_ADDR4 	= 4;
+
+	//fre_dataword_size
+	private final static int SFRAME_FRE_DATAWORD_1B	= 0;
+	private final static int SFRAME_FRE_DATAWORD_2B	= 1;
+	private final static int SFRAME_FRE_DATAWORD_4B	= 2;
 
 
 
@@ -24260,6 +24349,7 @@ public class ApplicationController implements Initializable {
 			int callSiteTableLength			= 0;
 			int actionRecodeTableStartVaddr	= 0;
 			int actionRecordTableOffset		= 0;
+			HashMap<Integer, EPlusViewerTreeTableRecord> TTypeTableMap	= null;
 
 			//フラグ
 			int actionRecodeTableFlag		= 0;
@@ -25135,23 +25225,26 @@ public class ApplicationController implements Initializable {
 						actionRecordTableOffset	= 0;
 						if(call_site_encoding_type==DW_EH_PE_ULEB128 || call_site_encoding_type==DW_EH_PE_SLEB128){
 							if(v!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase();
-								actionRecordTableOffset = v;
+								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase()+"-1=0x"+String.format("%08X", v-1).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase();
+								actionRecordTableOffset = v-1;
 								actionRecodeTableFlag	= 1;
 							}
 						}else if(call_site_encoding_type==DW_EH_PE_UDATA2 || call_site_encoding_type==DW_EH_PE_SDATA2 ||
 								 call_site_encoding_type==DW_EH_PE_UDATA4 || call_site_encoding_type==DW_EH_PE_SDATA4){
 							v	= getStringToInt(value, false);
 							if(v!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase();
-								actionRecordTableOffset = v;
+								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase()+"-1=0x"+String.format("%08X", v-1).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase();
+								actionRecordTableOffset = v-1;
 								actionRecodeTableFlag	= 1;
 							}
 						}else if(call_site_encoding_type==DW_EH_PE_UDATA8 || call_site_encoding_type==DW_EH_PE_SDATA8){
 							vl	= getStringToLong(value, false);
 							if(vl!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase();
-								actionRecordTableOffset = (int)vl;
+								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%08X", (int)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
+								actionRecordTableOffset = (int)vl-1;
 								actionRecodeTableFlag	= 1;
 							}
 						}
@@ -25243,12 +25336,10 @@ public class ApplicationController implements Initializable {
 							}
 						}
 						analysis	= "";
-						analysis	+= "ar_filter="+(int)v;
+						analysis	+= "ar_filter="+(int)v+"\n";
+						analysis	+= "=>TType_Table"+"["+(int)v+"]";
 						if(v<=1){
 							actionRecodeTableNextFlag=0;
-						}
-						if(v>0){
-							ttypeTableCount++;
 						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_filter_Notes;
 						beforesize	= size;
@@ -25362,16 +25453,17 @@ public class ApplicationController implements Initializable {
 
 
 					tttBaseOffset	= 0;
+					ttypeTableCount	= 0;
+					TTypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
 
 					//TType_Table
 					if(ttype_encoding_type!=DW_EH_PE_OMIT){
-						for(int j=ttypeTableCount; j>0; j--){
-							if(rva+beforesize>=ttypeTableBaseOffsetVaddr){
-								break;
-							}
+						while(rva+beforesize<ttypeTableBaseOffsetVaddr)
+						{
+							ttypeTableCount++;
 
 							//TType_Table
-							name		= "TType_Table["+j+"]";
+							name		= "TType_Table";
 							rawAddr		+= beforesize;
 							raw			= rawAddr;
 							offset		+= beforesize;
@@ -25399,6 +25491,8 @@ public class ApplicationController implements Initializable {
 							TreeItem<EPlusViewerTreeTableRecord> TTYPE_TABLE_Item 	= new TreeItem<>(TTYPE_TABLE);
 //							TTYPE_TABLE_Item.setExpanded(true);
 							LANGUAGE_SPECIFIC_DATA_AREA_Item.getChildren().add(TTYPE_TABLE_Item);
+
+							TTypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
 
 
 							//0xXX	uint8_t	filter_value[]
@@ -25463,6 +25557,11 @@ public class ApplicationController implements Initializable {
 							//サイス設定
 							TTYPE_TABLE.setSize(String.format("%08X", size).toUpperCase());
 						}
+
+						for(EPlusViewerTreeTableRecord TTYPE_TABLE : TTypeTableMap.values()){
+							TTYPE_TABLE.setName(TTYPE_TABLE.getName()+"["+ttypeTableCount+"]");
+							ttypeTableCount--;
+						}
 					}
 				}
 
@@ -25517,6 +25616,7 @@ public class ApplicationController implements Initializable {
 			int callSiteTableLength				= 0;
 			long actionRecodeTableStartVaddr	= 0;
 			int actionRecordTableOffset			= 0;
+			HashMap<Integer, EPlusViewerTreeTableRecord> TTypeTableMap	= null;
 
 			//フラグ
 			int actionRecodeTableFlag		= 0;
@@ -26386,7 +26486,8 @@ public class ApplicationController implements Initializable {
 						actionRecordTableOffset	= 0;
 						if(call_site_encoding_type==DW_EH_PE_ULEB128 || call_site_encoding_type==DW_EH_PE_SLEB128){
 							if(vl!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase();
+								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
 								actionRecordTableOffset = (int)vl;
 								actionRecodeTableFlag = 1;
 							}
@@ -26394,14 +26495,16 @@ public class ApplicationController implements Initializable {
 								 call_site_encoding_type==DW_EH_PE_UDATA4 || call_site_encoding_type==DW_EH_PE_SDATA4){
 							v	= getStringToInt(value, false);
 							if(v!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%016X", v).toUpperCase();
+								analysis	+= "action_record_table_offset=0x"+String.format("%016X", v).toUpperCase()+"-1=0x"+String.format("%016X", (long)(v-1)).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+v-1)).toUpperCase();
 								actionRecordTableOffset = v;
 								actionRecodeTableFlag = 1;
 							}
 						}else if(call_site_encoding_type==DW_EH_PE_UDATA8 || call_site_encoding_type==DW_EH_PE_SDATA8){
 							vl	= getStringToLong(value, false);
 							if(vl!=0){
-								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase();
+								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
+								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
 								actionRecordTableOffset = (int)vl;
 								actionRecodeTableFlag = 1;
 							}
@@ -26436,7 +26539,6 @@ public class ApplicationController implements Initializable {
 					arBaseOffset				= 0;
 					actionRecodeTableNextFlag	= 1;
 					actionRecodeTableCount		= 0;
-					ttypeTableCount				= 0;
 
 					do{
 						//Action_Recode_Table
@@ -26495,12 +26597,10 @@ public class ApplicationController implements Initializable {
 							}
 						}
 						analysis	= "";
-						analysis	+= "ar_filter="+(int)vl;
+						analysis	+= "ar_filter="+(int)vl+"\n";
+						analysis	+= "=>TType_Table"+"["+(int)vl+"]";
 						if((int)vl<=1){
 							actionRecodeTableNextFlag=0;
-						}
-						if((int)vl>0){
-							ttypeTableCount++;
 						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_filter_Notes;
 						beforesize	= size;
@@ -26614,16 +26714,17 @@ public class ApplicationController implements Initializable {
 
 
 					tttBaseOffset	= 0;
+					ttypeTableCount	= 0;
+					TTypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
 
 					//TType_Table
 					if(ttype_encoding_type!=DW_EH_PE_OMIT){
-						for(int j=ttypeTableCount; j>0; j--){
-							if(rva+beforesize>=ttypeTableBaseOffsetVaddr){
-								break;
-							}
+						while(rva+beforesize<ttypeTableBaseOffsetVaddr)
+						{
+							ttypeTableCount++;
 
 							//TType_Table
-							name		= "TType_Table["+j+"]";
+							name		= "TType_Table";
 							rawAddr		+= beforesize;
 							raw			= rawAddr;
 							offset		+= beforesize;
@@ -26651,6 +26752,8 @@ public class ApplicationController implements Initializable {
 							TreeItem<EPlusViewerTreeTableRecord> TTYPE_TABLE_Item 	= new TreeItem<>(TTYPE_TABLE);
 //							TTYPE_TABLE_Item.setExpanded(true);
 							LANGUAGE_SPECIFIC_DATA_AREA_Item.getChildren().add(TTYPE_TABLE_Item);
+
+							TTypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
 
 
 							//0xXX	uint8_t	filter_value[]
@@ -26714,6 +26817,11 @@ public class ApplicationController implements Initializable {
 
 							//サイス設定
 							TTYPE_TABLE.setSize(String.format("%08X", size).toUpperCase());
+						}
+
+						for(EPlusViewerTreeTableRecord TTYPE_TABLE : TTypeTableMap.values()){
+							TTYPE_TABLE.setName(TTYPE_TABLE.getName()+"["+ttypeTableCount+"]");
+							ttypeTableCount--;
 						}
 					}
 				}
