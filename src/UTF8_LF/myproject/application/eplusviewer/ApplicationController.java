@@ -24349,7 +24349,8 @@ public class ApplicationController implements Initializable {
 			int callSiteTableLength			= 0;
 			int actionRecodeTableStartVaddr	= 0;
 			int actionRecordTableOffset		= 0;
-			HashMap<Integer, EPlusViewerTreeTableRecord> TTypeTableMap	= null;
+			HashMap<Integer, String> actionRecodeVaddrMap 				= null;
+			HashMap<Integer, EPlusViewerTreeTableRecord> ttypeTableMap	= null;
 
 			//フラグ
 			int actionRecodeTableFlag		= 0;
@@ -24967,6 +24968,7 @@ public class ApplicationController implements Initializable {
 					//action_recode_tableの開始アドレス
 					actionRecodeTableStartVaddr	= rva+beforesize+callSiteTableLength;
 					actionRecodeTableFlag		= 0;
+					actionRecodeVaddrMap			= new HashMap<Integer, String>();
 
 					csBaseOffset		= 0;
 					callSiteTableCount	= 0;
@@ -25227,6 +25229,7 @@ public class ApplicationController implements Initializable {
 							if(v!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase()+"-1=0x"+String.format("%08X", v-1).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase();
+								actionRecodeVaddrMap.put(actionRecodeTableStartVaddr+v-1, String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase());
 								actionRecordTableOffset = v-1;
 								actionRecodeTableFlag	= 1;
 							}
@@ -25236,6 +25239,7 @@ public class ApplicationController implements Initializable {
 							if(v!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%08X", v).toUpperCase()+"-1=0x"+String.format("%08X", v-1).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase();
+								actionRecodeVaddrMap.put(actionRecodeTableStartVaddr+v-1, String.format("%08X", actionRecodeTableStartVaddr+v-1).toUpperCase());
 								actionRecordTableOffset = v-1;
 								actionRecodeTableFlag	= 1;
 							}
@@ -25244,6 +25248,7 @@ public class ApplicationController implements Initializable {
 							if(vl!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%08X", (int)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
+								actionRecodeVaddrMap.put((int)(actionRecodeTableStartVaddr+vl-1), String.format("%08X", (int)(actionRecodeTableStartVaddr+vl-1)).toUpperCase());
 								actionRecordTableOffset = (int)vl-1;
 								actionRecodeTableFlag	= 1;
 							}
@@ -25280,6 +25285,17 @@ public class ApplicationController implements Initializable {
 					actionRecodeTableCount		= 0;
 
 					do{
+						if(actionRecodeTableCount!=0){
+							vb	= data[offset+beforesize];
+							if(vb==0){
+								String arVaddr	= actionRecodeVaddrMap.get((int)(rva+beforesize));
+								if(arVaddr==null){
+									break;
+								}
+							}
+						}
+
+
 						//Action_Recode_Table
 						name		= "Action_Recode_Table["+actionRecodeTableCount+"]";
 						rawAddr		+= beforesize;
@@ -25337,8 +25353,12 @@ public class ApplicationController implements Initializable {
 						}
 						analysis	= "";
 						analysis	+= "ar_filter="+(int)v+"\n";
-						analysis	+= "=>TType_Table"+"["+(int)v+"]";
-						if(v<=1){
+						if(v==0){
+							analysis	+= "=>cleanup";
+						}else{
+							analysis	+= "=>TType_Table"+"["+(int)v+"]";
+						}
+						if(v<0){
 							actionRecodeTableNextFlag=0;
 						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_filter_Notes;
@@ -25383,7 +25403,10 @@ public class ApplicationController implements Initializable {
 							}
 						}
 						analysis	= "";
-						analysis	+= "ar_disp="+(int)v;
+						analysis	+= "ar_disp="+(int)v+"\n";
+						if((int)v!=0){
+							analysis	+= "=>Action_Recode(VMA)=0x"+ String.format("%08X", (int)(rva+v)).toUpperCase();
+						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_disp_Notes;
 						beforesize	= size;
 						count		+= size;
@@ -25454,7 +25477,7 @@ public class ApplicationController implements Initializable {
 
 					tttBaseOffset	= 0;
 					ttypeTableCount	= 0;
-					TTypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
+					ttypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
 
 					//TType_Table
 					if(ttype_encoding_type!=DW_EH_PE_OMIT){
@@ -25492,7 +25515,7 @@ public class ApplicationController implements Initializable {
 //							TTYPE_TABLE_Item.setExpanded(true);
 							LANGUAGE_SPECIFIC_DATA_AREA_Item.getChildren().add(TTYPE_TABLE_Item);
 
-							TTypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
+							ttypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
 
 
 							//0xXX	uint8_t	filter_value[]
@@ -25528,14 +25551,72 @@ public class ApplicationController implements Initializable {
 							}
 							analysis	= "";
 							if(ttype_encoding_type==DW_EH_PE_ULEB128 || ttype_encoding_type==DW_EH_PE_SLEB128){
-								analysis	+= "entry=0x"+String.format("%08X", (int)(v)).toUpperCase();
-							}else if(ttype_encoding_type==DW_EH_PE_UDATA2 || ttype_encoding_type==DW_EH_PE_SDATA2 ||
-									 ttype_encoding_type==DW_EH_PE_UDATA4 || ttype_encoding_type==DW_EH_PE_SDATA4){
-								v			= getStringToInt(value, false);
-								analysis	+= "entry=0x"+String.format("%08X", (int)(v)).toUpperCase();
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%08X", (int)(rva+v)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%08X", (int)(rva+v)).toUpperCase()+")=0x"+String.format("%08X", (int)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(textAddress+v)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
+							}else if(ttype_encoding_type==DW_EH_PE_UDATA2 || ttype_encoding_type==DW_EH_PE_SDATA2){
+								v	= getStringToInt(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%08X", (int)(rva+v)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%08X", (int)(rva+v)).toUpperCase()+")=0x"+String.format("%08X", (int)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(textAddress+v)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
+							}else if(ttype_encoding_type==DW_EH_PE_UDATA4 || ttype_encoding_type==DW_EH_PE_SDATA4){
+								v	= getStringToInt(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(rva+v)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%08X", (int)(rva+v)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%08X", (int)(rva+v)).toUpperCase()+")=0x"+String.format("%08X", (int)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(textAddress+v)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%08X", (int)(startRva+v)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
 							}else if(ttype_encoding_type==DW_EH_PE_UDATA8 || ttype_encoding_type==DW_EH_PE_SDATA8){
-								vl			= getStringToLong(value, false);
-								analysis	+= "entry=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+								vl	= getStringToLong(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%08X", (int)(rva+vl)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase()+")=0x"+String.format("%08X", (int)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(textAddress+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
 							}
 							notes		= LANGUAGE_SPECIFIC_DATA_AREA_TTYPE_TABLE_filter_value_Notes;
 							beforesize	= size;
@@ -25553,12 +25634,16 @@ public class ApplicationController implements Initializable {
 //							filter_value_Item.setExpanded(true);
 							TTYPE_TABLE_Item.getChildren().add(filter_value_Item);
 
+							if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+								makeIndirectionReference(filter_value_Item, strTmp, ELF32_ADDR_SIZE);
+								strTmp	= "";
+							}
 
 							//サイス設定
 							TTYPE_TABLE.setSize(String.format("%08X", size).toUpperCase());
 						}
 
-						for(EPlusViewerTreeTableRecord TTYPE_TABLE : TTypeTableMap.values()){
+						for(EPlusViewerTreeTableRecord TTYPE_TABLE : ttypeTableMap.values()){
 							TTYPE_TABLE.setName(TTYPE_TABLE.getName()+"["+ttypeTableCount+"]");
 							ttypeTableCount--;
 						}
@@ -25616,11 +25701,13 @@ public class ApplicationController implements Initializable {
 			int callSiteTableLength				= 0;
 			long actionRecodeTableStartVaddr	= 0;
 			int actionRecordTableOffset			= 0;
-			HashMap<Integer, EPlusViewerTreeTableRecord> TTypeTableMap	= null;
+			HashMap<Long, String> actionRecodeVaddrMap 					= null;
+			HashMap<Integer, EPlusViewerTreeTableRecord> ttypeTableMap	= null;
 
 			//フラグ
 			int actionRecodeTableFlag		= 0;
 			int actionRecodeTableNextFlag	= 0;
+
 
 			//エンコーディングとサイズ
 			int lpstart_ptr_encoding_type	= 0;
@@ -25905,6 +25992,11 @@ public class ApplicationController implements Initializable {
 					TreeItem<EPlusViewerTreeTableRecord> lpstart_ptr_Item	= new TreeItem<>(lpstart_ptr);
 //					lpstart_ptr_Item.setExpanded(true);
 					LANGUAGE_SPECIFIC_DATA_AREA_Item.getChildren().add(lpstart_ptr_Item);
+
+					if(lpstart_ptr_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+						makeIndirectionReference(lpstart_ptr_Item, strTmp, ELF64_ADDR_SIZE);
+						strTmp	= "";
+					}
 				}
 
 
@@ -26228,6 +26320,7 @@ public class ApplicationController implements Initializable {
 					//action_recode_tableの開始アドレス
 					actionRecodeTableStartVaddr	= (long)(rva+beforesize+callSiteTableLength);
 					actionRecodeTableFlag		= 0;
+					actionRecodeVaddrMap			= new HashMap<Long, String>();
 
 					csBaseOffset		= 0;
 					callSiteTableCount	= 0;
@@ -26488,6 +26581,7 @@ public class ApplicationController implements Initializable {
 							if(vl!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
+								actionRecodeVaddrMap.put((long)(actionRecodeTableStartVaddr+vl-1), String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase());
 								actionRecordTableOffset = (int)vl;
 								actionRecodeTableFlag = 1;
 							}
@@ -26497,6 +26591,7 @@ public class ApplicationController implements Initializable {
 							if(v!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%016X", v).toUpperCase()+"-1=0x"+String.format("%016X", (long)(v-1)).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+v-1)).toUpperCase();
+								actionRecodeVaddrMap.put((long)(actionRecodeTableStartVaddr+v-1), String.format("%016X", (long)(actionRecodeTableStartVaddr+v-1)).toUpperCase());
 								actionRecordTableOffset = v;
 								actionRecodeTableFlag = 1;
 							}
@@ -26505,6 +26600,7 @@ public class ApplicationController implements Initializable {
 							if(vl!=0){
 								analysis	+= "action_record_table_offset=0x"+String.format("%016X", vl).toUpperCase()+"-1=0x"+String.format("%016X", vl-1).toUpperCase()+"\n";
 								analysis	+= "action_record(VMA)=0x"+String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase();
+								actionRecodeVaddrMap.put((long)(actionRecodeTableStartVaddr+vl-1), String.format("%016X", (long)(actionRecodeTableStartVaddr+vl-1)).toUpperCase());
 								actionRecordTableOffset = (int)vl;
 								actionRecodeTableFlag = 1;
 							}
@@ -26541,6 +26637,16 @@ public class ApplicationController implements Initializable {
 					actionRecodeTableCount		= 0;
 
 					do{
+						if(actionRecodeTableCount!=0){
+							vb	= data[offset+beforesize];
+							if(vb==0){
+								String arVaddr	= actionRecodeVaddrMap.get((long)(rva+beforesize));
+								if(arVaddr==null){
+									break;
+								}
+							}
+						}
+
 						//Action_Recode_Table
 						name		= "Action_Recode_Table["+actionRecodeTableCount+"]";
 						rawAddr		+= beforesize;
@@ -26598,8 +26704,12 @@ public class ApplicationController implements Initializable {
 						}
 						analysis	= "";
 						analysis	+= "ar_filter="+(int)vl+"\n";
-						analysis	+= "=>TType_Table"+"["+(int)vl+"]";
-						if((int)vl<=1){
+						if((int)vl==0){
+							analysis	+= "=>cleanup";
+						}else{
+							analysis	+= "=>TType_Table"+"["+(int)vl+"]";
+						}
+						if((int)vl<0){
 							actionRecodeTableNextFlag=0;
 						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_filter_Notes;
@@ -26644,7 +26754,10 @@ public class ApplicationController implements Initializable {
 							}
 						}
 						analysis	= "";
-						analysis	+= "ar_disp="+(int)vl;
+						analysis	+= "ar_disp="+(int)vl+"\n";
+						if((int)vl!=0){
+							analysis	+= "=>Action_Recode(VMA)=0x"+ String.format("%016X", (int)(rva+vl)).toUpperCase();
+						}
 						notes		= LANGUAGE_SPECIFIC_DATA_AREA_ACTIVE_RECORD_TABLE_ar_disp_Notes;
 						beforesize	= size;
 						count		+= size;
@@ -26715,7 +26828,7 @@ public class ApplicationController implements Initializable {
 
 					tttBaseOffset	= 0;
 					ttypeTableCount	= 0;
-					TTypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
+					ttypeTableMap	= new HashMap<Integer, EPlusViewerTreeTableRecord>();
 
 					//TType_Table
 					if(ttype_encoding_type!=DW_EH_PE_OMIT){
@@ -26753,7 +26866,7 @@ public class ApplicationController implements Initializable {
 //							TTYPE_TABLE_Item.setExpanded(true);
 							LANGUAGE_SPECIFIC_DATA_AREA_Item.getChildren().add(TTYPE_TABLE_Item);
 
-							TTypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
+							ttypeTableMap.put(ttypeTableCount, TTYPE_TABLE);
 
 
 							//0xXX	uint8_t	filter_value[]
@@ -26789,14 +26902,72 @@ public class ApplicationController implements Initializable {
 							}
 							analysis	= "";
 							if(ttype_encoding_type==DW_EH_PE_ULEB128 || ttype_encoding_type==DW_EH_PE_SLEB128){
-								analysis	+= "filter_value=0x"+String.format("%016X", (long)(vl)).toUpperCase();
-							}else if(ttype_encoding_type==DW_EH_PE_UDATA2 || ttype_encoding_type==DW_EH_PE_SDATA2 ||
-									 ttype_encoding_type==DW_EH_PE_UDATA4 || ttype_encoding_type==DW_EH_PE_SDATA4){
-								v			= getStringToInt(value, false);
-								analysis	+= "filter_value=0x"+String.format("%016X", (long)(v)).toUpperCase();
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%016X", (long)(rva+vl)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%016X", (long)(rva+vl)).toUpperCase()+")=0x"+String.format("%016X", (long)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(textAddress+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
+							}else if(ttype_encoding_type==DW_EH_PE_UDATA2 || ttype_encoding_type==DW_EH_PE_SDATA2){
+								v	= getStringToInt(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%016X", (long)(rva+v)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%016X", (long)(rva+v)).toUpperCase()+")=0x"+String.format("%016X", (long)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(textAddress+v)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
+							}else if(ttype_encoding_type==DW_EH_PE_UDATA4 || ttype_encoding_type==DW_EH_PE_SDATA4){
+								v	= getStringToInt(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+v)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%016X", (long)(rva+v)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%016X", (long)(rva+v)).toUpperCase()+")=0x"+String.format("%016X", (long)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(textAddress+v)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(startRva+v)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
 							}else if(ttype_encoding_type==DW_EH_PE_UDATA8 || ttype_encoding_type==DW_EH_PE_SDATA8){
-								vl			= getStringToLong(value, false);
-								analysis	+= "filter_value=0x"+String.format("%016X", (long)(vl)).toUpperCase();
+								vl	= getStringToLong(value, false);
+								if(ttype_encoding_rel==DW_EH_PE_PCREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+									strTmp			= String.format("%016X", (long)(rva+vl)).toUpperCase();
+									ld				= getIndirectionReferenceData(strTmp);
+									analysis		+= "filter_value(VMA)=*(0x"+String.format("%016X", (long)(rva+vl)).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_TEXTREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(textAddress+vl)).toUpperCase()+")=0x"+String.format("%016X", (long)ld).toUpperCase();
+								}else if(ttype_encoding_rel==DW_EH_PE_DATAREL){
+									analysis		+= "filter_value(VMA)=0x"+String.format("%016X", (long)(startRva+vl)).toUpperCase();
+//								}else if(ttype_encoding_rel==DW_EH_PE_FUNCREL){
+
+//								}else if(ttype_encoding_rel==DW_EH_PE_ALIGNED){
+
+								}
 							}
 							notes		= LANGUAGE_SPECIFIC_DATA_AREA_TTYPE_TABLE_filter_value_Notes;
 							beforesize	= size;
@@ -26814,12 +26985,16 @@ public class ApplicationController implements Initializable {
 //							filter_value_Item.setExpanded(true);
 							TTYPE_TABLE_Item.getChildren().add(filter_value_Item);
 
+							if(ttype_encoding_rel==(DW_EH_PE_PCREL|DW_EH_PE_INDIRECT)){
+								makeIndirectionReference(filter_value_Item, strTmp, ELF64_ADDR_SIZE);
+								strTmp	= "";
+							}
 
 							//サイス設定
 							TTYPE_TABLE.setSize(String.format("%08X", size).toUpperCase());
 						}
 
-						for(EPlusViewerTreeTableRecord TTYPE_TABLE : TTypeTableMap.values()){
+						for(EPlusViewerTreeTableRecord TTYPE_TABLE : ttypeTableMap.values()){
 							TTYPE_TABLE.setName(TTYPE_TABLE.getName()+"["+ttypeTableCount+"]");
 							ttypeTableCount--;
 						}
@@ -33282,6 +33457,7 @@ public class ApplicationController implements Initializable {
 			String analysis = "";
 			String notes	= "";
 			String strLma	= null;
+			int sectionHeaderIndex	= 0;
 
 			//アドレス設定
 			rawAddr	= startAddr32;
@@ -33315,6 +33491,10 @@ public class ApplicationController implements Initializable {
 				}
 			}
 			analysis	= "";
+			sectionHeaderIndex = getSectionHeaderIndex(String.format("%08X", rva).toUpperCase());
+			if(sectionHeaderIndex!=-1){
+				analysis	+= ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sectionHeaderIndex).getValue().getName();
+			}
 			notes		= Indirection_Reference_Notes;
 			beforesize	= size;
 
@@ -33353,6 +33533,7 @@ public class ApplicationController implements Initializable {
 			String analysis = "";
 			String notes	= "";
 			String strLma	= null;
+			int sectionHeaderIndex	= 0;
 
 			//アドレス設定
 			rawAddr	= startAddr32;
@@ -33386,6 +33567,10 @@ public class ApplicationController implements Initializable {
 				}
 			}
 			analysis	= "";
+			sectionHeaderIndex = getSectionHeaderIndex(String.format("%016X", rva).toUpperCase());
+			if(sectionHeaderIndex!=-1){
+				analysis	+= ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sectionHeaderIndex).getValue().getName();
+			}
 			notes		= Indirection_Reference_Notes;
 			beforesize	= size;
 
@@ -33400,6 +33585,50 @@ public class ApplicationController implements Initializable {
 			TreeItem<EPlusViewerTreeTableRecord> indirection_reference_Item	= new TreeItem<>(indirection_reference);
 			item.getChildren().add(indirection_reference_Item);
 
+		}
+	}
+
+	private int getSectionHeaderIndex(String strVaddr){
+
+		//セクションを特定
+		Iterator<SectionHeader> sectionHeader_Iterator	= sectionHeaderList.iterator();
+		SectionHeader sectionHeader						= null;
+		String addr										= null;
+		long diffAddr									= 0;
+		long address_long								= 0;
+		int sectionHeaderIndex							= 0;
+
+		if(ELFCLASS==ELFCLASS32){	//32bit
+			while(sectionHeader_Iterator.hasNext()){
+				sectionHeader	= (SectionHeader)sectionHeader_Iterator.next();
+				if(sectionHeader.addrCheckInt(strVaddr, ELF32_ADDR_SIZE)){
+					diffAddr		= Integer.toUnsignedLong(sectionHeader.getSh_addr_int())-Integer.toUnsignedLong(sectionHeader.getSh_offset_int());
+					address_long	= Integer.toUnsignedLong(getStringToInt(strVaddr, false))-diffAddr;
+					addr			= String.format("%08X", (int)address_long).toUpperCase();
+					break;
+				}else {
+					sectionHeader = null;
+				}
+				sectionHeaderIndex++;
+			}
+		}else if(ELFCLASS==ELFCLASS64){	//64bit
+			while(sectionHeader_Iterator.hasNext()){
+				sectionHeader	= (SectionHeader)sectionHeader_Iterator.next();
+				if(sectionHeader.addrCheckLong(strVaddr, ELF64_ADDR_SIZE)){
+					diffAddr	= sectionHeader.getSh_addr_long()-sectionHeader.getSh_offset_long();
+					addr		= String.format("%016X", getStringToLong(strVaddr, false)-diffAddr).toUpperCase();
+					break;
+				}else {
+					sectionHeader = null;
+				}
+				sectionHeaderIndex++;
+			}
+		}
+
+		if(addr!=null && sectionHeader!=null){
+			return sectionHeaderIndex;
+		}else{
+			return -1;
 		}
 	}
 
