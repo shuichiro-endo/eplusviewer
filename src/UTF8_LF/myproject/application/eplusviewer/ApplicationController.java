@@ -18,6 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -86,6 +87,9 @@ public class ApplicationController implements Initializable {
 
 	@FXML
 	private MenuItem idInputKey;
+
+	@FXML
+	private MenuItem idDarkMode;
 
 	@FXML
 	private TableView<BinTableRecord> idBinTable;
@@ -248,6 +252,8 @@ public class ApplicationController implements Initializable {
 
 	//inputfile
 	private String inputBinFilePath	= "";
+
+	private Boolean darkmode	= false;
 
 	//root
 	private String rootName		= "";
@@ -517,6 +523,16 @@ public class ApplicationController implements Initializable {
 	//sframe_fde (.sframe)
 	private String SFRAME_FDE_Notes	= "";
 
+	//sframe_func_desc_entry (.sframe)
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_Notes							= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_start_address_Notes	= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_size_Notes			= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_start_fre_off_Notes	= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_num_fres_Notes		= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_info_Notes			= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_rep_size_Notes		= "";
+	private String SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_padding2_Notes		= "";
+
 	//sframe_func_desc_idx (.sframe)
 	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_Notes							= "";
 	private String SFRAME_FDE_SFRAME_FUNC_DESC_IDX_sfdi_func_start_offset_Notes		= "";
@@ -548,6 +564,7 @@ public class ApplicationController implements Initializable {
 	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_sfre_start_address_Notes	= "";
 	private String SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_sfre_info_Notes			= "";
 
+	private String SFRAME_FRE_offset_Notes		= "";
 	private String SFRAME_FRE_dataword_Notes	= "";
 
 
@@ -1114,6 +1131,10 @@ public class ApplicationController implements Initializable {
 	private final static int SFRAME_AARCH64_PAUTH_KEY_A	= 0;
 	private final static int SFRAME_AARCH64_PAUTH_KEY_B	= 1;
 
+	//fdetype
+	private final static int SFRAME_FDE_TYPE_PCMASK	= 1;
+	private final static int SFRAME_FDE_TYPE_PCINC	= 0;
+
 	//fde_pctype
 	private final static int SFRAME_FDE_PCTYPE_INC	= 0;
 	private final static int SFRAME_FDE_PCTYPE_MASK	= 1;
@@ -1126,6 +1147,11 @@ public class ApplicationController implements Initializable {
 	private final static int SFRAME_FRE_TYPE_ADDR1	= 0;
 	private final static int SFRAME_FRE_TYPE_ADDR2	= 1;
 	private final static int SFRAME_FRE_TYPE_ADDR4 	= 2;
+
+	//fre_offset_size
+	private final static int SFRAME_FRE_OFFSET_1B	= 0;
+	private final static int SFRAME_FRE_OFFSET_2B	= 1;
+	private final static int SFRAME_FRE_OFFSET_4B	= 2;
 
 	//fre_dataword_size
 	private final static int SFRAME_FRE_DATAWORD_1B	= 0;
@@ -1172,6 +1198,7 @@ public class ApplicationController implements Initializable {
 
 	private int SFRAME_HEADER_SIZE			= 0;
 	private int SFRAME_PREAMBLE_SIZE		= 0;
+	private int SFRAME_FUNC_DESC_ENTRY_SIZE	= 0;
 	private int SFRAME_FDE_INDEX_SIZE		= 0;
 	private int SFRAME_FDE_ATTRIBUTE_SIZE	= 0;
 
@@ -1408,7 +1435,7 @@ public class ApplicationController implements Initializable {
 		String alertType				= "INFORMATION";
 		String title					= "ReadMe";
 		String headerText				= "E+Viewer";
-		String contentText				= "";
+		String contentText				= "Author: Shuichiro Endo";
 		String expandableContentText	= "";
 		String OS_NAME					= System.getProperty("os.name").toLowerCase();
 
@@ -1489,6 +1516,23 @@ public class ApplicationController implements Initializable {
 				idDisasm.setDisable(false);
 			}
 		}
+	}
+
+	@FXML
+	protected void onDarkMode(ActionEvent evt) {
+
+		Scene scene			= stage.getScene();
+		List<String> styles	= scene.getStylesheets();
+		styles.clear();
+
+		if(darkmode==false){
+			styles.add(getClass().getResource("application_eplusviewer_dark.css").toExternalForm());
+			darkmode	= true;
+		}else{
+			styles.add(getClass().getResource("application_eplusviewer.css").toExternalForm());
+			darkmode	= false;
+		}
+
 	}
 
 	@FXML
@@ -3425,6 +3469,7 @@ public class ApplicationController implements Initializable {
 
 		SFRAME_PREAMBLE_SIZE		= UINT16_T+UINT8_T*2;
 		SFRAME_HEADER_SIZE			= SFRAME_PREAMBLE_SIZE+UINT8_T*2+INT8_T*2+UINT32_T*5;
+		SFRAME_FUNC_DESC_ENTRY_SIZE	= INT32_T+UINT32_T*3+UINT16_T+UINT8_T*2;
 		SFRAME_FDE_INDEX_SIZE		= INT64_T+UINT32_T*2;
 		SFRAME_FDE_ATTRIBUTE_SIZE	= UINT16_T+UINT8_T*3;
 
@@ -16557,12 +16602,47 @@ public class ApplicationController implements Initializable {
 
 
 			if(sfhAuxhdrLen==0 && sfpVersion==SFRAME_VERSION_2){
+/*
+				//SFRAME_FUNCTION_DESCRIPTOR_ENTRY
+				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY_V2";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva		+= beforesize;
+				}
+				if(lma!=0){
+					lma		+= beforesize;
+				}
+				size		= 0;
+				value		= "";
+				analysis	= "";
+				notes		= SFRAME_FDE_Notes;
+				beforesize	= 0;
 
+				EPlusViewerTreeTableRecord SFRAME_FDE	= null;
+				if(rva!=0 && lma!=0){
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> SFRAME_FDE_Item 	= new TreeItem<>(SFRAME_FDE);
+//				SFRAME_FDE_Item.setExpanded(true);
+				item.getChildren().add(SFRAME_FDE_Item);
 
+				//サイズ設定
+				SFRAME_FDE_SIZE	= SFRAME_FUNC_DESC_ENTRY_SIZE*sfhNumFdes;
+				SFRAME_FDE.setSize(String.format("%08X", SFRAME_FDE_SIZE).toUpperCase());
 
+				//SFRAME_FDE
+				makeSFrameFDEv2(SFRAME_FDE_Item, String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
+				beforesize	+= SFRAME_FDE_SIZE;
+*/
 			}else if(sfhAuxhdrLen==0 && sfpVersion==SFRAME_VERSION_3){
 				//SFRAME_FUNCTION_DESCRIPTOR_ENTRY
-				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY";
+				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY_V3";
 				rawAddr		+= beforesize;
 				raw			= rawAddr;
 				offset		+= beforesize;
@@ -16594,9 +16674,8 @@ public class ApplicationController implements Initializable {
 				SFRAME_FDE_SIZE	= SFRAME_FDE_INDEX_SIZE*sfhNumFdes;
 				SFRAME_FDE.setSize(String.format("%08X", SFRAME_FDE_SIZE).toUpperCase());
 
-
 				//SFRAME_FDE
-				makeSFrameFDEv3(SFRAME_FDE_Item,  String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
+				makeSFrameFDEv3(SFRAME_FDE_Item, String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
 				beforesize	+= SFRAME_FDE_SIZE;
 			}
 		}
@@ -30104,12 +30183,47 @@ public class ApplicationController implements Initializable {
 
 
 			if(sfhAuxhdrLen==0 && sfpVersion==SFRAME_VERSION_2){
+/*
+				//SFRAME_FUNCTION_DESCRIPTOR_ENTRY
+				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY_V2";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva		+= beforesize;
+				}
+				if(lma!=0){
+					lma		+= beforesize;
+				}
+				size		= 0;
+				value		= "";
+				analysis	= "";
+				notes		= SFRAME_FDE_Notes;
+				beforesize	= 0;
 
+				EPlusViewerTreeTableRecord SFRAME_FDE	= null;
+				if(rva!=0 && lma!=0){
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					SFRAME_FDE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> SFRAME_FDE_Item 	= new TreeItem<>(SFRAME_FDE);
+//				SFRAME_FDE_Item.setExpanded(true);
+				item.getChildren().add(SFRAME_FDE_Item);
 
+				//サイズ設定
+				SFRAME_FDE_SIZE	= SFRAME_FUNC_DESC_ENTRY_SIZE*sfhNumFdes;
+				SFRAME_FDE.setSize(String.format("%08X", SFRAME_FDE_SIZE).toUpperCase());
 
+				//SFRAME_FDE
+				makeSFrameFDEv2(SFRAME_FDE_Item, String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
+				beforesize	+= SFRAME_FDE_SIZE;
+*/
 			}else if(sfhAuxhdrLen==0 && sfpVersion==SFRAME_VERSION_3){
 				//SFRAME_FUNCTION_DESCRIPTOR_ENTRY
-				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY";
+				name		= "SFRAME_FUNCTION_DESCRIPTOR_ENTRY_V3";
 				rawAddr		+= beforesize;
 				raw			= rawAddr;
 				offset		+= beforesize;
@@ -30141,9 +30255,8 @@ public class ApplicationController implements Initializable {
 				SFRAME_FDE_SIZE	= SFRAME_FDE_INDEX_SIZE*sfhNumFdes;
 				SFRAME_FDE.setSize(String.format("%08X", SFRAME_FDE_SIZE).toUpperCase());
 
-
 				//SFRAME_FDE
-				makeSFrameFDEv3(SFRAME_FDE_Item,  String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
+				makeSFrameFDEv3(SFRAME_FDE_Item, String.format("%016X", rva).toUpperCase(), SFRAME_FDE_SIZE, sfhNumFdes, sfpFlags, startRva, sfhFreStartVaddr);
 				beforesize	+= SFRAME_FDE_SIZE;
 			}
 		}
@@ -30369,6 +30482,1417 @@ public class ApplicationController implements Initializable {
 			TreeItem<EPlusViewerTreeTableRecord> sfp_flags_Item	= new TreeItem<>(sfp_flags);
 //			sfp_flags_Item.setExpanded(true);
 			SFRAME_PREAMBLE_Item.getChildren().add(sfp_flags_Item);
+		}
+	}
+
+	private void makeSFrameFDEv2(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, int dataSize, int sfhNumFdes, byte sfpFlags, long sFrameStartRva, long sfhFreStartVaddr){
+
+		if((eMachine==EM_X86_64 || eMachine==EM_AARCH64) && ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//データ取得用
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long startRva	= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			byte vb			= 0;
+			int v			= 0;
+			long vl			= 0;
+			String strTmp	= "";
+			long ld			= 0;
+
+			//オフセット
+			int startOffset	= 0;
+			int baseOffset	= 0;
+
+			//保存用
+			long sfdeFuncStartVaddr		= 0;
+			long sfdeFuncVaddr			= 0;
+			int sectionHeadreIndex		= 0;
+			int sfdeFuncNumFres			= 0;
+			int sfdeFuncInfo			= 0;
+			int pauth_key				= 0;
+			int fdetype					= 0;
+			int fretype					= 0;
+			int sfdeFuncRepSize			= 0;
+
+			//カウント
+			int count			= 0;
+			int pos				= 0;
+
+			//アドレス設定
+			rawAddr			= startAddr32;
+			rva				= getStringToLong(strVaddr, false);
+			startRva		= rva;
+			String strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma			= getStringToLong(strLma, false);
+			}
+
+
+			for(int j=0; j<sfhNumFdes; j++){
+				//SFRAME_FUNC_DESC_ENTRY
+				name		= "SFRAME_FUNC_DESC_ENTRY["+j+"]";
+				rawAddr		+= beforesize;
+				raw			= rawAddr;
+				offset		+= beforesize;
+				if(rva!=0){
+					rva		+= beforesize;
+				}
+				if(lma!=0){
+					lma		+= beforesize;
+				}
+				size		= 0;
+				value		= "";
+				analysis	= "";
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_Notes;
+				beforesize	= 0;
+				baseOffset	= 0;
+
+				EPlusViewerTreeTableRecord SFRAME_FUNC_DESC_ENTRY	= null;
+				if(rva!=0 && lma!=0){
+					SFRAME_FUNC_DESC_ENTRY	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					SFRAME_FUNC_DESC_ENTRY	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					SFRAME_FUNC_DESC_ENTRY	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> SFRAME_FUNC_DESC_ENTRY_Item 	= new TreeItem<>(SFRAME_FUNC_DESC_ENTRY);
+//				SFRAME_FUNC_DESC_ENTRY_Item.setExpanded(true);
+				item.getChildren().add(SFRAME_FUNC_DESC_ENTRY_Item);
+
+				//サイズ設定
+				SFRAME_FUNC_DESC_ENTRY.setSize(String.format("%08X", SFRAME_FDE_INDEX_SIZE).toUpperCase());
+
+
+				//0x00	INT32_T	sfde_func_start_address
+				name	= "sfde_func_start_address";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= INT32_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				v			= getStringToInt(value, false);
+				analysis	= "";
+				if((sfpFlags&SFRAME_F_FDE_FUNC_START_PCREL)!=0){
+					sfdeFuncStartVaddr	= (long)(rva+v);
+					analysis	+= "sfde_func_start_address(VMA)=0x"+String.format("%016X", sfdeFuncStartVaddr).toUpperCase()+"\n";
+				}else{
+					sfdeFuncStartVaddr	= (long)(sFrameStartRva+v);
+					analysis	+= "sfde_func_start_address(VMA)=0x"+String.format("%016X", sfdeFuncStartVaddr).toUpperCase()+"\n";
+				}
+				sectionHeadreIndex = getSectionHeaderIndex(String.format("%016X", sfdeFuncStartVaddr).toUpperCase());
+				if(sectionHeadreIndex!=-1){
+					analysis	+= "=>"+ELF_SECTION_HEADER_TABLE_ITEM.getChildren().get(sectionHeadreIndex).getValue().getName();
+				}
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_start_address_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_start_address	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_start_address_Item	= new TreeItem<>(sfde_func_start_address);
+//				sfde_func_start_address_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_start_address_Item);
+
+
+				//0x04	UINT32_T	sfde_func_size
+				name	= "sfde_func_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT32_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				v			= getStringToInt(value, false);
+				analysis	= "";
+				analysis	= v+" bytes";
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_size_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_size	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_size_Item	= new TreeItem<>(sfde_func_size);
+//				sfde_func_size_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_size_Item);
+
+
+				//0x08	UINT32_T	sfde_func_start_fre_off
+				name	= "sfde_func_start_fre_off";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT32_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				v			= getStringToInt(value, false);
+				analysis	= "";
+				sfdeFuncVaddr	= (long)(sfhFreStartVaddr+v);
+				analysis	+= "sframe_fre_addr(VMA)=0x"+String.format("%016X", sfdeFuncVaddr).toUpperCase();
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_start_fre_off_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_start_fre_off	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_start_fre_off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_start_fre_off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_start_fre_off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_start_fre_off_Item	= new TreeItem<>(sfde_func_start_fre_off);
+//				sfde_func_start_fre_off_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_start_fre_off_Item);
+
+
+				//0x0C	UINT32_T	sfde_func_num_fres
+				name	= "sfde_func_num_fres";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT32_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				v			= getStringToInt(value, false);
+				analysis	= "";
+				analysis	+= v;
+				sfdeFuncNumFres	= v;
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_num_fres_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_num_fres	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_num_fres_Item	= new TreeItem<>(sfde_func_num_fres);
+//				sfde_func_num_fres_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_num_fres_Item);
+
+
+				//0x10	UINT8_T	sfde_func_info
+				name	= "sfde_func_info";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				if((byte)(vb&0x20)!=0 && eMachine==EM_AARCH64){
+					analysis	+= "pauth_key=SFRAME_AARCH64_PAUTH_KEY_B(0x20, 1)\n";
+					pauth_key	= SFRAME_AARCH64_PAUTH_KEY_B;
+				}else if((byte)(vb&0x20)==0 && eMachine==EM_AARCH64){
+					analysis	+= "pauth_key=SFRAME_AARCH64_PAUTH_KEY_A(0x20, 0)\n";
+					pauth_key	= SFRAME_AARCH64_PAUTH_KEY_A;
+				}
+				if((byte)(vb&0x10)!=0){
+					analysis	+= "fdetype=SFRAME_FDE_TYPE_PCMASK(0x10, 1)\n";
+					fdetype	= SFRAME_FDE_TYPE_PCMASK;
+				}else{
+					analysis	+= "fdetype=SFRAME_FDE_TYPE_PCINC(0x10, 0)\n";
+					fdetype	= SFRAME_FDE_TYPE_PCINC;
+				}
+				if((byte)(vb&0x0f)==SFRAME_FRE_TYPE_ADDR4){
+					analysis	+= "fretype=SFRAME_FRE_TYPE_ADDR4(0x0f, 2)\n";
+					fretype	= SFRAME_FRE_TYPE_ADDR4;
+				}else if((byte)(vb&0x0f)==SFRAME_FRE_TYPE_ADDR2){
+					analysis	+= "fretype=SFRAME_FRE_TYPE_ADDR2(0x0f, 1)\n";
+					fretype	= SFRAME_FRE_TYPE_ADDR2;
+				}else if((byte)(vb&0x0f)==SFRAME_FRE_TYPE_ADDR1){
+					analysis	+= "fretype=SFRAME_FRE_TYPE_ADDR1(0x0f, 0)\n";
+					fretype	= SFRAME_FRE_TYPE_ADDR1;
+				}
+				sfdeFuncInfo	= (byte)(vb&0xff);
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_info_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_info	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_info_Item	= new TreeItem<>(sfde_func_info);
+//				sfde_func_info_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_info_Item);
+
+
+				//0x11	UINT8_T	sfde_func_rep_size
+				name	= "sfde_func_rep_size";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT8_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				vb			= data[offset+size-1];
+				analysis	= "";
+				analysis	= (byte)(vb&0xff)+" bytes";
+				sfdeFuncRepSize	= (byte)(vb%0xff);
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_rep_size_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_rep_size	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_rep_size_Item	= new TreeItem<>(sfde_func_rep_size);
+//				sfde_func_rep_size_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_rep_size_Item);
+
+
+				//0x12	UINT16_T	sfde_func_padding2
+				name	= "sfde_func_padding2";
+				rawAddr	+= beforesize;
+				raw		= rawAddr;
+				offset	+= beforesize;
+				if(rva!=0){
+					rva	+= beforesize;
+				}
+				if(lma!=0){
+					lma	+= beforesize;
+				}
+				size	= UINT16_T;
+				value	= "";
+				if(ELFDATA==ELFDATA2LSB){	//LSB
+					for(int i=offset+size-1; i>=offset; i--){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}else{	//MSB
+					for(int i=offset; i<offset+size; i++){
+						value	+= String.format("%02X", data[i]).toUpperCase();
+					}
+				}
+				analysis	= "";
+				notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ENTRY_sfde_func_padding2_Notes;
+				beforesize	= size;
+
+				EPlusViewerTreeTableRecord sfde_func_padding2	= null;
+				if(rva!=0 && lma!=0){
+					sfde_func_padding2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else if(rva!=0){
+					sfde_func_padding2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}else{
+					sfde_func_padding2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+				}
+				TreeItem<EPlusViewerTreeTableRecord> sfde_func_padding2_Item	= new TreeItem<>(sfde_func_padding2);
+//				sfde_func_padding2_Item.setExpanded(true);
+				SFRAME_FUNC_DESC_ENTRY_Item.getChildren().add(sfde_func_padding2_Item);
+
+
+				makeSFrameFREv2(sfde_func_start_fre_off_Item, String.format("%016X", sfdeFuncVaddr).toUpperCase(), sfdeFuncStartVaddr, sfdeFuncNumFres, pauth_key, fdetype, fretype);
+
+			}
+		}
+	}
+
+	private void makeSFrameFREv2(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, long sfdiFuncStartVaddr, int sfdeFuncNumFres, int pauth_key, int fdetype, int fretype){
+
+		if((eMachine==EM_X86_64 || eMachine==EM_AARCH64) && ELFCLASS==ELFCLASS64){	//64bit
+			//開始アドレス取得
+			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
+			int startAddr32		= (int)startAddr64;
+
+			//データ取得用
+			int dataSize	= SFRAME_FDE_ATTRIBUTE_SIZE;
+			byte[] data		= null;
+
+			//データ取得
+			data	= getBintableBytes(startAddr32, dataSize);
+
+			//設定用変数
+			String name		= "";
+			int raw			= 0;
+			int rawAddr		= 0;
+			long rva		= 0;
+			long startRva	= 0;
+			long lma		= 0;
+			int offset		= 0;
+			int beforesize	= 0;
+			int size		= 0;
+			String value	= "";
+			String analysis = "";
+			String notes	= "";
+			byte vb			= 0;
+			int v			= 0;
+			long vl			= 0;
+			String strTmp	= "";
+			long ld			= 0;
+
+			//オフセット
+			int startOffset	= 0;
+			int baseOffset	= 0;
+			int sfreaOffset	= 0;
+
+			//保存用
+
+
+			int fre_mangled_ra_p	= 0;
+			int fre_offset_size		= 0;
+			int fre_offset_count	= 0;
+			int fre_cfa_base_reg_id	= 0;
+			int of					= 0;
+
+			int reg_p				= 0;
+			int deref_p				= 0;
+			int regnum				= 0;
+
+			int SFRAME_FRE_SIZE						= 0;
+			int SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE	= 0;
+
+			//カウント
+			int count			= 0;
+			int pos				= 0;
+
+			//アドレス設定
+			rawAddr			= startAddr32;
+			rva				= getStringToLong(strVaddr, false);
+			startRva		= rva;
+			String strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
+			if(strLma!=null){
+				lma			= getStringToLong(strLma, false);
+			}
+
+
+			//SFRAME_FRAME_ROW_ENTRY
+			name		= "SFRAME_FRAME_ROW_ENTRY";
+			rawAddr		+= beforesize;
+			raw			= rawAddr;
+			offset		+= beforesize;
+			if(rva!=0){
+				rva		+= beforesize;
+			}
+			if(lma!=0){
+				lma		+= beforesize;
+			}
+			size		= 0;
+			value		= "";
+			analysis	= "";
+			notes		= SFRAME_FRE_Notes;
+			beforesize	= 0;
+			baseOffset	= offset;
+
+			EPlusViewerTreeTableRecord SFRAME_FRE	= null;
+			if(rva!=0 && lma!=0){
+				SFRAME_FRE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else if(rva!=0){
+				SFRAME_FRE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}else{
+				SFRAME_FRE	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+			}
+			TreeItem<EPlusViewerTreeTableRecord> SFRAME_FRE_Item 	= new TreeItem<>(SFRAME_FRE);
+//			SFRAME_FRE_Item.setExpanded(true);
+			item.getChildren().add(SFRAME_FRE_Item);
+
+
+			if(fretype==SFRAME_FRE_TYPE_ADDR1){
+				SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE	= UINT8_T*2;
+			}else if(fretype==SFRAME_FRE_TYPE_ADDR2){
+				SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE	= UINT16_T+UINT8_T;
+			}else if(fretype==SFRAME_FRE_TYPE_ADDR4){
+				SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE	= UINT32_T+UINT8_T;
+			}else{
+				return;
+			}
+
+			for(int j=0; j<sfdeFuncNumFres; j++){
+				//データ取得
+				dataSize	+= SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE;
+				data		= getBintableBytes(startAddr32, dataSize);
+
+				fre_mangled_ra_p	= 0;
+				fre_offset_size		= 0;
+				fre_offset_count	= 0;
+				fre_cfa_base_reg_id	= 0;
+				of					= 0;
+				reg_p				= 0;
+				deref_p				= 0;
+				regnum				= 0;
+
+				if(fretype==SFRAME_FRE_TYPE_ADDR1){
+					//SFRAME_FRAME_ROW_ENTRY_ADDR1
+					name		= "SFRAME_FRAME_ROW_ENTRY_ADDR1["+j+"]";
+					rawAddr		+= beforesize;
+					raw			= rawAddr;
+					offset		+= beforesize;
+					if(rva!=0){
+						rva		+= beforesize;
+					}
+					if(lma!=0){
+						lma		+= beforesize;
+					}
+					size		= 0;
+					value		= "";
+					analysis	= "";
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_Notes;
+					beforesize	= 0;
+					sfreaOffset	= offset;
+
+					EPlusViewerTreeTableRecord SFRAME_FRAME_ROW_ENTRY_ADDR1	= null;
+					if(rva!=0 && lma!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR1	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR1	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						SFRAME_FRAME_ROW_ENTRY_ADDR1	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> SFRAME_FRAME_ROW_ENTRY_ADDR1_Item 	= new TreeItem<>(SFRAME_FRAME_ROW_ENTRY_ADDR1);
+//					SFRAME_FRAME_ROW_ENTRY_ADDR1_Item.setExpanded(true);
+					SFRAME_FRE_Item.getChildren().add(SFRAME_FRAME_ROW_ENTRY_ADDR1_Item);
+
+					//サイズ設定
+					SFRAME_FRAME_ROW_ENTRY_ADDR1.setSize(String.format("%08X", SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE).toUpperCase());
+
+
+					//0x00	UINT8_T	sfre_start_address
+					name	= "sfre_start_address";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT8_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					vb			= data[offset+size-1];
+					analysis	= "";
+					if(fdetype==SFRAME_FDE_TYPE_PCMASK){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCMASK\n";
+						analysis	+= "=>sfre_start_address=0x"+String.format("%016X", (long)((byte)(vb&0xff))).toUpperCase();
+					}else if(fdetype==SFRAME_FDE_TYPE_PCINC){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCINC\n";
+						analysis	+= "=>sfre_start_address(VMA)=0x"+String.format("%016X", (long)(sfdiFuncStartVaddr+(byte)(vb&0xff))).toUpperCase();
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_start_address_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_start_address	= null;
+					if(rva!=0 && lma!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_start_address_Item	= new TreeItem<>(sfre_start_address);
+//					sfre_start_address_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR1_Item.getChildren().add(sfre_start_address_Item);
+
+
+					//0x01	UINT8_T	sfre_info
+					name	= "sfre_info";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT8_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					vb			= data[offset+size-1];
+					analysis	= "";
+					if((byte)(vb&0x80)!=0){
+						analysis	+= "fre_mangled_ra_p(0x80, 1)\n";
+						fre_mangled_ra_p	= 1;
+					}
+					if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_1B){
+						analysis	+= "SFRAME_FRE_OFFSET_1B(0x60, 0)\n";
+						analysis	+= "=>fre_offset_size=1 byte\n";
+						fre_offset_size	= 1;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_2B){
+						analysis	+= "SFRAME_FRE_OFFSET_2B(0x60, 1)\n";
+						analysis	+= "=>fre_offset_size=2 bytes\n";
+						fre_offset_size	= 2;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_4B){
+						analysis	+= "SFRAME_FRE_OFFSET_4B(0x60, 2)\n";
+						analysis	+= "=>fre_offset_size=4 bytes\n";
+						fre_offset_size	= 4;
+					}else{
+						analysis	+= "fre_offset_size=0\n";
+						fre_offset_size	= 0;
+					}
+					if(((byte)(vb&0x1e)>>1)!=0){
+						analysis	+= "fre_offset_count(0x1e)="+((byte)(vb&0x1e)>>1)+"\n";
+						fre_offset_count	= (byte)(vb&0x1e)>>1;
+					}else{
+						analysis	+= "fre_offset_count(0x1e)=0\n";
+						analysis	+= "=>return address (RA) is undefined.\n";
+						fre_offset_count	= 0;
+					}
+					if((byte)(vb&0x01)!=0){
+						analysis	+= "fre_cfa_base_reg_id(0x01, 1)\n";
+						analysis	+= "=>BASE_REG(SP)\n";
+						fre_cfa_base_reg_id	= 1;
+					}else{
+						analysis	+= "fre_cfa_base_reg_id(0x01, 0)\n";
+						analysis	+= "=>BASE_REG(FP)\n";
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_info_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_info	= null;
+					if(rva!=0 && lma!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_info_Item	= new TreeItem<>(sfre_info);
+//					sfre_info_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR1_Item.getChildren().add(sfre_info_Item);
+
+
+					//データ取得
+					dataSize	+= fre_offset_size*fre_offset_count;
+					data		= getBintableBytes(startAddr32, dataSize);
+
+					for(int k=1; k<=fre_offset_count; k++){
+						if(eMachine==EM_X86_64){
+							//0xXX	offset
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR1_Item.getChildren().add(off_Item);
+						}else if(eMachine==EM_AARCH64){
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>RA=CFA"+(of<0?of:"+"+of);
+							}else if(k==3){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR1_Item.getChildren().add(off_Item);
+						}
+					}
+				}else if(fretype==SFRAME_FRE_TYPE_ADDR2){
+					//SFRAME_FRAME_ROW_ENTRY_ADDR2
+					name		= "SFRAME_FRAME_ROW_ENTRY_ADDR2["+j+"]";
+					rawAddr		+= beforesize;
+					raw			= rawAddr;
+					offset		+= beforesize;
+					if(rva!=0){
+						rva		+= beforesize;
+					}
+					if(lma!=0){
+						lma		+= beforesize;
+					}
+					size		= 0;
+					value		= "";
+					analysis	= "";
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR2_Notes;
+					beforesize	= 0;
+					sfreaOffset	= offset;
+
+					EPlusViewerTreeTableRecord SFRAME_FRAME_ROW_ENTRY_ADDR2	= null;
+					if(rva!=0 && lma!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						SFRAME_FRAME_ROW_ENTRY_ADDR2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> SFRAME_FRAME_ROW_ENTRY_ADDR2_Item 	= new TreeItem<>(SFRAME_FRAME_ROW_ENTRY_ADDR2);
+//					SFRAME_FRAME_ROW_ENTRY_ADDR2_Item.setExpanded(true);
+					SFRAME_FRE_Item.getChildren().add(SFRAME_FRAME_ROW_ENTRY_ADDR2_Item);
+
+					//サイズ設定
+					SFRAME_FRAME_ROW_ENTRY_ADDR2.setSize(String.format("%08X", SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE).toUpperCase());
+
+
+					//0x00	UINT16_T	sfre_start_address
+					name	= "sfre_start_address";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT16_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= getStringToInt(value, false);
+					analysis	= "";
+					if(fdetype==SFRAME_FDE_TYPE_PCMASK){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCMASK\n";
+						analysis	+= "=>sfre_start_address=0x"+String.format("%016X", (long)(v)).toUpperCase();
+					}else if(fdetype==SFRAME_FDE_TYPE_PCINC){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCINC\n";
+						analysis	+= "=>sfre_start_address(VMA)=0x"+String.format("%016X", (long)(sfdiFuncStartVaddr+v)).toUpperCase();
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_start_address_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_start_address	= null;
+					if(rva!=0 && lma!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_start_address_Item	= new TreeItem<>(sfre_start_address);
+//					sfre_start_address_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR2_Item.getChildren().add(sfre_start_address_Item);
+
+
+					//0x02	UINT8_T	sfre_info
+					name	= "sfre_info";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT8_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					vb			= data[offset+size-1];
+					analysis	= "";
+					if((byte)(vb&0x80)!=0){
+						analysis	+= "fre_mangled_ra_p(0x80, 1)\n";
+						fre_mangled_ra_p	= 1;
+					}
+					if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_1B){
+						analysis	+= "SFRAME_FRE_OFFSET_1B(0x60, 0)\n";
+						analysis	+= "=>fre_offset_size=1 byte\n";
+						fre_offset_size	= 1;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_2B){
+						analysis	+= "SFRAME_FRE_OFFSET_2B(0x60, 1)\n";
+						analysis	+= "=>fre_offset_size=2 bytes\n";
+						fre_offset_size	= 2;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_4B){
+						analysis	+= "SFRAME_FRE_OFFSET_4B(0x60, 2)\n";
+						analysis	+= "=>fre_offset_size=4 bytes\n";
+						fre_offset_size	= 4;
+					}else{
+						analysis	+= "fre_offset_size=0\n";
+						fre_offset_size	= 0;
+					}
+					if(((byte)(vb&0x1e)>>1)!=0){
+						analysis	+= "fre_offset_count(0x1e)="+((byte)(vb&0x1e)>>1)+"\n";
+						fre_offset_count	= (byte)(vb&0x1e)>>1;
+					}else{
+						analysis	+= "fre_offset_count(0x1e)=0\n";
+						analysis	+= "=>return address (RA) is undefined.\n";
+						fre_offset_count	= 0;
+					}
+					if((byte)(vb&0x01)!=0){
+						analysis	+= "fre_cfa_base_reg_id(0x01, 1)\n";
+						analysis	+= "=>BASE_REG(SP)\n";
+						fre_cfa_base_reg_id	= 1;
+					}else{
+						analysis	+= "fre_cfa_base_reg_id(0x01, 0)\n";
+						analysis	+= "=>BASE_REG(FP)\n";
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_info_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_info	= null;
+					if(rva!=0 && lma!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_info_Item	= new TreeItem<>(sfre_info);
+//					sfre_info_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR2_Item.getChildren().add(sfre_info_Item);
+
+
+					//データ取得
+					dataSize	+= fre_offset_size*fre_offset_count;
+					data		= getBintableBytes(startAddr32, dataSize);
+
+					for(int k=1; k<=fre_offset_count; k++){
+						if(eMachine==EM_X86_64){
+							//0xXX	offset
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR2_Item.getChildren().add(off_Item);
+						}else if(eMachine==EM_AARCH64){
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>RA=CFA"+(of<0?of:"+"+of);
+							}else if(k==3){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR2_Item.getChildren().add(off_Item);
+						}
+					}
+				}else if(fretype==SFRAME_FRE_TYPE_ADDR4){
+					//SFRAME_FRAME_ROW_ENTRY_ADDR4
+					name		= "SFRAME_FRAME_ROW_ENTRY_ADDR4["+j+"]";
+					rawAddr		+= beforesize;
+					raw			= rawAddr;
+					offset		+= beforesize;
+					if(rva!=0){
+						rva		+= beforesize;
+					}
+					if(lma!=0){
+						lma		+= beforesize;
+					}
+					size		= 0;
+					value		= "";
+					analysis	= "";
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR4_Notes;
+					beforesize	= 0;
+					sfreaOffset	= offset;
+
+					EPlusViewerTreeTableRecord SFRAME_FRAME_ROW_ENTRY_ADDR4	= null;
+					if(rva!=0 && lma!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR4	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						SFRAME_FRAME_ROW_ENTRY_ADDR4	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						SFRAME_FRAME_ROW_ENTRY_ADDR4	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> SFRAME_FRAME_ROW_ENTRY_ADDR4_Item 	= new TreeItem<>(SFRAME_FRAME_ROW_ENTRY_ADDR4);
+//					SFRAME_FRAME_ROW_ENTRY_ADDR4_Item.setExpanded(true);
+					SFRAME_FRE_Item.getChildren().add(SFRAME_FRAME_ROW_ENTRY_ADDR4_Item);
+
+					//サイズ設定
+					SFRAME_FRAME_ROW_ENTRY_ADDR4.setSize(String.format("%08X", SFRAME_FRAME_ROW_ENTRY_ADDR_SIZE).toUpperCase());
+
+
+					//0x00	UINT32_T	sfre_start_address
+					name	= "sfre_start_address";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT32_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					v			= getStringToInt(value, false);
+					analysis	= "";
+					if(fdetype==SFRAME_FDE_TYPE_PCMASK){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCMASK\n";
+						analysis	+= "=>sfre_start_address=0x"+String.format("%016X", (long)(v)).toUpperCase();
+					}else if(fdetype==SFRAME_FDE_TYPE_PCINC){
+						analysis	+= "fdetype=SFRAME_FDE_TYPE_PCINC\n";
+						analysis	+= "=>sfre_start_address(VMA)=0x"+String.format("%016X", (long)(sfdiFuncStartVaddr+v)).toUpperCase();
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_start_address_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_start_address	= null;
+					if(rva!=0 && lma!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_start_address	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_start_address_Item	= new TreeItem<>(sfre_start_address);
+//					sfre_start_address_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR4_Item.getChildren().add(sfre_start_address_Item);
+
+
+					//0x04	UINT8_T	sfre_info
+					name	= "sfre_info";
+					rawAddr	+= beforesize;
+					raw		= rawAddr;
+					offset	+= beforesize;
+					if(rva!=0){
+						rva	+= beforesize;
+					}
+					if(lma!=0){
+						lma	+= beforesize;
+					}
+					size	= UINT8_T;
+					value	= "";
+					if(ELFDATA==ELFDATA2LSB){	//LSB
+						for(int i=offset+size-1; i>=offset; i--){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}else{	//MSB
+						for(int i=offset; i<offset+size; i++){
+							value	+= String.format("%02X", data[i]).toUpperCase();
+						}
+					}
+					vb			= data[offset+size-1];
+					analysis	= "";
+					if((byte)(vb&0x80)!=0){
+						analysis	+= "fre_mangled_ra_p(0x80, 1)\n";
+						fre_mangled_ra_p	= 1;
+					}
+					if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_1B){
+						analysis	+= "SFRAME_FRE_OFFSET_1B(0x60, 0)\n";
+						analysis	+= "=>fre_offset_size=1 byte\n";
+						fre_offset_size	= 1;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_2B){
+						analysis	+= "SFRAME_FRE_OFFSET_2B(0x60, 1)\n";
+						analysis	+= "=>fre_offset_size=2 bytes\n";
+						fre_offset_size	= 2;
+					}else if(((byte)(vb&0x60)>>4)==SFRAME_FRE_OFFSET_4B){
+						analysis	+= "SFRAME_FRE_OFFSET_4B(0x60, 2)\n";
+						analysis	+= "=>fre_offset_size=4 bytes\n";
+						fre_offset_size	= 4;
+					}else{
+						analysis	+= "fre_offset_size=0\n";
+						fre_offset_size	= 0;
+					}
+					if(((byte)(vb&0x1e)>>1)!=0){
+						analysis	+= "fre_offset_count(0x1e)="+((byte)(vb&0x1e)>>1)+"\n";
+						fre_offset_count	= (byte)(vb&0x1e)>>1;
+					}else{
+						analysis	+= "fre_offset_count(0x1e)=0\n";
+						analysis	+= "=>return address (RA) is undefined.\n";
+						fre_offset_count	= 0;
+					}
+					if((byte)(vb&0x01)!=0){
+						analysis	+= "fre_cfa_base_reg_id(0x01, 1)\n";
+						analysis	+= "=>BASE_REG(SP)\n";
+						fre_cfa_base_reg_id	= 1;
+					}else{
+						analysis	+= "fre_cfa_base_reg_id(0x01, 0)\n";
+						analysis	+= "=>BASE_REG(FP)\n";
+					}
+					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_info_Notes;
+					beforesize	= size;
+					count		+= size;
+
+					EPlusViewerTreeTableRecord sfre_info	= null;
+					if(rva!=0 && lma!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else if(rva!=0){
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}else{
+						sfre_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-sfreaOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+					}
+					TreeItem<EPlusViewerTreeTableRecord> sfre_info_Item	= new TreeItem<>(sfre_info);
+//					sfre_info_Item.setExpanded(true);
+					SFRAME_FRAME_ROW_ENTRY_ADDR4_Item.getChildren().add(sfre_info_Item);
+
+
+					//データ取得
+					dataSize	+= fre_offset_size*fre_offset_count;
+					data		= getBintableBytes(startAddr32, dataSize);
+
+					for(int k=1; k<=fre_offset_count; k++){
+						if(eMachine==EM_X86_64){
+							//0xXX	offset
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR4_Item.getChildren().add(off_Item);
+						}else if(eMachine==EM_AARCH64){
+							name	= "offset["+k+"]";
+							rawAddr	+= beforesize;
+							raw		= rawAddr;
+							offset	+= beforesize;
+							if(rva!=0){
+								rva	+= beforesize;
+							}
+							if(lma!=0){
+								lma	+= beforesize;
+							}
+							size	= fre_offset_size;
+							value	= "";
+							if(ELFDATA==ELFDATA2LSB){	//LSB
+								for(int i=offset+size-1; i>=offset; i--){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}else{	//MSB
+								for(int i=offset; i<offset+size; i++){
+									value	+= String.format("%02X", data[i]).toUpperCase();
+								}
+							}
+							if(fre_offset_size==1){
+								vb	= data[offset+size-1];
+								of	= vb;
+							}else if(fre_offset_size==2 || fre_offset_size==4){
+								v	= getStringToInt(value, false);
+								of	= v;
+							}
+							analysis	= "";
+							if(k==1){
+								if(fre_cfa_base_reg_id==1){
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
+									analysis	+= "=>CFA=SP"+(of<0?of:"+"+of);
+								}else{
+									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
+									analysis	+= "=>CFA=FP"+(of<0?of:"+"+of);
+								}
+							}else if(k==2){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>RA=CFA"+(of<0?of:"+"+of);
+							}else if(k==3){
+								analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
+								analysis	+= "=>FP=CFA"+(of<0?of:"+"+of);
+							}
+							notes		= SFRAME_FRE_offset_Notes;
+							beforesize	= size;
+							count		+= size;
+
+							EPlusViewerTreeTableRecord off	= null;
+							if(rva!=0 && lma!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else if(rva!=0){
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}else{
+								off	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
+							}
+							TreeItem<EPlusViewerTreeTableRecord> off_Item	= new TreeItem<>(off);
+//							off_Item.setExpanded(true);
+							SFRAME_FRAME_ROW_ENTRY_ADDR4_Item.getChildren().add(off_Item);
+						}
+					}
+				}
+			}
+
+			//サイズ設定
+			SFRAME_FRE_SIZE	= dataSize;
+			SFRAME_FRE.setSize(String.format("%08X", SFRAME_FRE_SIZE).toUpperCase());
 		}
 	}
 
@@ -30599,253 +32123,6 @@ public class ApplicationController implements Initializable {
 				makeSFrameFREv3(sfdi_func_start_fre_off_Item, String.format("%016X", sfdiFuncVaddr).toUpperCase(), sfdiFuncStartVaddr);
 
 			}
-		}
-	}
-
-	private void makeSframeFuncDescAttrv3(TreeItem<EPlusViewerTreeTableRecord> item, String strVaddr, int dataSize){
-
-		if((eMachine==EM_X86_64 || eMachine==EM_AARCH64) && ELFCLASS==ELFCLASS64){	//64bit
-			//開始アドレス取得
-			long startAddr64	= getStringToLong(getVaddrToFileoffset(strVaddr, false), false);
-			int startAddr32		= (int)startAddr64;
-
-			//データ取得用
-			byte[] data		= null;
-
-			//データ取得
-			data	= getBintableBytes(startAddr32, dataSize);
-
-			//設定用変数
-			String name		= "";
-			int raw			= 0;
-			int rawAddr		= 0;
-			long rva		= 0;
-			long startRva	= 0;
-			long lma		= 0;
-			int offset		= 0;
-			int beforesize	= 0;
-			int size		= 0;
-			String value	= "";
-			String analysis = "";
-			String notes	= "";
-			byte vb			= 0;
-			int v			= 0;
-			long vl			= 0;
-			String strTmp	= "";
-			long ld			= 0;
-
-			//オフセット
-			int startOffset	= 0;
-			int baseOffset	= 0;
-
-			//カウント
-			int count			= 0;
-			int pos				= 0;
-
-			//アドレス設定
-			rawAddr			= startAddr32;
-			rva				= getStringToLong(strVaddr, false);
-			startRva		= rva;
-			String strLma	= getVaddrToPaddr(String.format("%016X", rva).toUpperCase());
-			if(strLma!=null){
-				lma			= getStringToLong(strLma, false);
-			}
-
-
-			//SFRAME_FUNC_DESC_ATTR
-			name		= "SFRAME_FUNC_DESC_ATTR";
-			rawAddr		+= beforesize;
-			raw			= rawAddr;
-			offset		+= beforesize;
-			if(rva!=0){
-				rva		+= beforesize;
-			}
-			if(lma!=0){
-				lma		+= beforesize;
-			}
-			size		= 0;
-			value		= "";
-			analysis	= "";
-			notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_Notes;
-			beforesize	= 0;
-			baseOffset	= offset;
-
-			EPlusViewerTreeTableRecord SFRAME_FUNC_DESC_ATTR	= null;
-			if(rva!=0 && lma!=0){
-				SFRAME_FUNC_DESC_ATTR	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else if(rva!=0){
-				SFRAME_FUNC_DESC_ATTR	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else{
-				SFRAME_FUNC_DESC_ATTR	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-startOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}
-			TreeItem<EPlusViewerTreeTableRecord> SFRAME_FUNC_DESC_ATTR_Item 	= new TreeItem<>(SFRAME_FUNC_DESC_ATTR);
-//			SFRAME_FUNC_DESC_ATTR_Item.setExpanded(true);
-			item.getChildren().add(SFRAME_FUNC_DESC_ATTR_Item);
-
-			//サイズ設定
-			SFRAME_FUNC_DESC_ATTR.setSize(String.format("%08X", SFRAME_FDE_ATTRIBUTE_SIZE).toUpperCase());
-
-
-			//0x00	UINT16_T	sfda_func_num_fres
-			name	= "sfda_func_num_fres";
-			rawAddr	+= beforesize;
-			raw		= rawAddr;
-			offset	+= beforesize;
-			if(rva!=0){
-				rva	+= beforesize;
-			}
-			if(lma!=0){
-				lma	+= beforesize;
-			}
-			size	= UINT16_T;
-			value	= "";
-			if(ELFDATA==ELFDATA2LSB){	//LSB
-				for(int i=offset+size-1; i>=offset; i--){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}else{	//MSB
-				for(int i=offset; i<offset+size; i++){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}
-			v			= getStringToInt(value, false);
-			analysis	= "";
-			analysis	+= v;
-			notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_num_fres_Notes;
-			beforesize	= size;
-
-			EPlusViewerTreeTableRecord sfda_func_num_fres	= null;
-			if(rva!=0 && lma!=0){
-				sfda_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else if(rva!=0){
-				sfda_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else{
-				sfda_func_num_fres	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}
-			TreeItem<EPlusViewerTreeTableRecord> sfda_func_num_fres_Item	= new TreeItem<>(sfda_func_num_fres);
-//			sfda_func_num_fres_Item.setExpanded(true);
-			SFRAME_FUNC_DESC_ATTR_Item.getChildren().add(sfda_func_num_fres_Item);
-
-
-			//0x02	UINT8_T	sfda_func_info
-			name	= "sfda_func_info";
-			rawAddr	+= beforesize;
-			raw		= rawAddr;
-			offset	+= beforesize;
-			if(rva!=0){
-				rva	+= beforesize;
-			}
-			if(lma!=0){
-				lma	+= beforesize;
-			}
-			size	= UINT8_T;
-			value	= "";
-			if(ELFDATA==ELFDATA2LSB){	//LSB
-				for(int i=offset+size-1; i>=offset; i--){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}else{	//MSB
-				for(int i=offset; i<offset+size; i++){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}
-			vb			= data[offset+size-1];
-			analysis	= "";
-			notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_info_Notes;
-			beforesize	= size;
-
-			EPlusViewerTreeTableRecord sfda_func_info	= null;
-			if(rva!=0 && lma!=0){
-				sfda_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else if(rva!=0){
-				sfda_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else{
-				sfda_func_info	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}
-			TreeItem<EPlusViewerTreeTableRecord> sfda_func_info_Item	= new TreeItem<>(sfda_func_info);
-//			sfda_func_info_Item.setExpanded(true);
-			SFRAME_FUNC_DESC_ATTR_Item.getChildren().add(sfda_func_info_Item);
-
-
-			//0x03	UINT8_T	sfda_func_info2
-			name	= "sfda_func_info2";
-			rawAddr	+= beforesize;
-			raw		= rawAddr;
-			offset	+= beforesize;
-			if(rva!=0){
-				rva	+= beforesize;
-			}
-			if(lma!=0){
-				lma	+= beforesize;
-			}
-			size	= UINT8_T;
-			value	= "";
-			if(ELFDATA==ELFDATA2LSB){	//LSB
-				for(int i=offset+size-1; i>=offset; i--){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}else{	//MSB
-				for(int i=offset; i<offset+size; i++){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}
-			vb			= data[offset+size-1];
-			analysis	= "";
-			notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_info2_Notes;
-			beforesize	= size;
-
-			EPlusViewerTreeTableRecord sfda_func_info2	= null;
-			if(rva!=0 && lma!=0){
-				sfda_func_info2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else if(rva!=0){
-				sfda_func_info2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else{
-				sfda_func_info2	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}
-			TreeItem<EPlusViewerTreeTableRecord> sfda_func_info2_Item	= new TreeItem<>(sfda_func_info2);
-//			sfda_func_info2_Item.setExpanded(true);
-			SFRAME_FUNC_DESC_ATTR_Item.getChildren().add(sfda_func_info2_Item);
-
-
-			//0x04	UINT8_T	sfda_func_rep_size
-			name	= "sfda_func_rep_size";
-			rawAddr	+= beforesize;
-			raw		= rawAddr;
-			offset	+= beforesize;
-			if(rva!=0){
-				rva	+= beforesize;
-			}
-			if(lma!=0){
-				lma	+= beforesize;
-			}
-			size	= UINT8_T;
-			value	= "";
-			if(ELFDATA==ELFDATA2LSB){	//LSB
-				for(int i=offset+size-1; i>=offset; i--){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}else{	//MSB
-				for(int i=offset; i<offset+size; i++){
-					value	+= String.format("%02X", data[i]).toUpperCase();
-				}
-			}
-			vb			= data[offset+size-1];
-			analysis	= "";
-			analysis	= vb+" bytes";
-			notes		= SFRAME_FDE_SFRAME_FUNC_DESC_ATTR_sfda_func_rep_size_Notes;
-			beforesize	= size;
-
-			EPlusViewerTreeTableRecord sfda_func_rep_size	= null;
-			if(rva!=0 && lma!=0){
-				sfda_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%016X", lma).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else if(rva!=0){
-				sfda_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%016X", rva).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}else{
-				sfda_func_rep_size	= new EPlusViewerTreeTableRecord(name, String.format("%08X", raw).toUpperCase(), String.format("%08X", offset-baseOffset).toUpperCase(), String.format("%08X", size).toUpperCase(), value, analysis, notes);
-			}
-			TreeItem<EPlusViewerTreeTableRecord> sfda_func_rep_size_Item	= new TreeItem<>(sfda_func_rep_size);
-//			sfda_func_rep_size_Item.setExpanded(true);
-			SFRAME_FUNC_DESC_ATTR_Item.getChildren().add(sfda_func_rep_size_Item);
 		}
 	}
 
@@ -31280,10 +32557,10 @@ public class ApplicationController implements Initializable {
 					analysis	= "";
 					if(fde_pctype==SFRAME_FDE_PCTYPE_MASK){
 						analysis	+= "fde_pctype=SFRAME_FDE_PCTYPE_MASK\n";
-						analysis	+= "=>sfre_start_address=0x"+String.format("%016X", (long)((byte)(vb&0xff))).toUpperCase();
+						analysis	+= "=>sfre_start_address=0x"+String.format("%016X", (long)((int)(vb&0xff))).toUpperCase();
 					}else if(fde_pctype==SFRAME_FDE_PCTYPE_INC){
 						analysis	+= "fde_pctype=SFRAME_FDE_PCTYPE_INC\n";
-						analysis	+= "=>sfre_start_address(VMA)=0x"+String.format("%016X", (long)(sfdiFuncStartVaddr+(byte)(vb&0xff))).toUpperCase();
+						analysis	+= "=>sfre_start_address(VMA)=0x"+String.format("%016X", (long)(sfdiFuncStartVaddr+(int)(vb&0xff))).toUpperCase();
 					}
 					notes		= SFRAME_FRE_SFRAME_FRAME_ROW_ENTRY_ADDR1_sfre_start_address_Notes;
 					beforesize	= size;
@@ -31410,7 +32687,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= vb;
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -31419,14 +32696,14 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -31467,7 +32744,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= (int)(vb);
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -31476,17 +32753,17 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>RA=CFA+"+dw;
+									analysis	+= "=>RA=CFA"+(dw<0?dw:"+"+dw);
 								}else if(k==3){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -31534,7 +32811,6 @@ public class ApplicationController implements Initializable {
 								}
 							}
 							vb			= data[offset+size-1];
-							dw			= (int)(vb&0xff);
 							analysis	= "";
 							if(vb==0){
 								analysis	+= "padding data word";
@@ -31604,7 +32880,7 @@ public class ApplicationController implements Initializable {
 							}
 							if(fre_dataword_size==1){
 								vb	= data[offset+size-1];
-								dw	= (int)(vb&0xff);
+								dw	= (int)(vb);
 							}else if(fre_dataword_size==2 || fre_dataword_size==4){
 								v	= getStringToInt(value, false);
 								dw	= v;
@@ -31616,56 +32892,56 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==2){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==3){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}
 							}
@@ -31877,7 +33153,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= vb;
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -31886,14 +33162,14 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -31934,7 +33210,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= vb;
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -31943,17 +33219,17 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>RA=CFA+"+dw;
+									analysis	+= "=>RA=CFA"+(dw<0?dw:"+"+dw);
 								}else if(k==3){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -32071,7 +33347,7 @@ public class ApplicationController implements Initializable {
 							}
 							if(fre_dataword_size==1){
 								vb	= data[offset+size-1];
-								dw	= (int)(vb&0xff);
+								dw	= vb;
 							}else if(fre_dataword_size==2 || fre_dataword_size==4){
 								v	= getStringToInt(value, false);
 								dw	= v;
@@ -32083,56 +33359,56 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==2){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==3){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}
 							}
@@ -32344,7 +33620,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= vb;
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -32353,14 +33629,14 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -32401,7 +33677,7 @@ public class ApplicationController implements Initializable {
 								}
 								if(fre_dataword_size==1){
 									vb	= data[offset+size-1];
-									dw	= (int)(vb&0xff);
+									dw	= vb;
 								}else if(fre_dataword_size==2 || fre_dataword_size==4){
 									v	= getStringToInt(value, false);
 									dw	= v;
@@ -32410,17 +33686,17 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(fre_cfa_base_reg_id==1){
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=1(BASE_REG=SP)\n";
-										analysis	+= "=>CFA=SP+"+dw;
+										analysis	+= "=>CFA=SP"+(dw<0?dw:"+"+dw);
 									}else{
 										analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT, fre_cfa_base_reg_id=0(BASE_REG=FP)\n";
-										analysis	+= "=>CFA=FP+"+dw;
+										analysis	+= "=>CFA=FP"+(dw<0?dw:"+"+dw);
 									}
 								}else if(k==2){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>RA=CFA+"+dw;
+									analysis	+= "=>RA=CFA"+(dw<0?dw:"+"+dw);
 								}else if(k==3){
 									analysis	+= "fde_type=SFRAME_FDE_TYPE_DEFAULT\n";
-									analysis	+= "=>FP=CFA+"+dw;
+									analysis	+= "=>FP=CFA"+(dw<0?dw:"+"+dw);
 								}
 								notes		= SFRAME_FRE_dataword_Notes;
 								beforesize	= size;
@@ -32538,7 +33814,7 @@ public class ApplicationController implements Initializable {
 							}
 							if(fre_dataword_size==1){
 								vb	= data[offset+size-1];
-								dw	= (int)(vb&0xff);
+								dw	= vb;
 							}else if(fre_dataword_size==2 || fre_dataword_size==4){
 								v	= getStringToInt(value, false);
 								dw	= v;
@@ -32550,56 +33826,56 @@ public class ApplicationController implements Initializable {
 								if(k==1){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "CFA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "CFA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==2){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "FP=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "FP=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}else if(k==3){
 									if(reg_p==1 && deref_p==1){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+"+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*("+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==1 && deref_p==0){
 										analysis	+= "Base="+getDwRegistryName(regnum)+"\n";
-										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+"+"+dw+"\n";
-										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+"+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr="+getDwRegistryName(regnum)+(dw<0?dw:"+"+dw)+"\n";
 									}else if(reg_p==0 && deref_p==1){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=*Addr=*(CFA+"+dw+")\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=*Addr=*(CFA"+(dw<0?dw:"+"+dw)+")\n";
 									}else if(reg_p==0 && deref_p==0){
 										analysis	+= "Base=CFA\n";
-										analysis	+= "Addr=Base+Offset2=CFA+"+dw+"\n";
-										analysis	+= "RA=Addr=CFA+"+dw+"\n";
+										analysis	+= "Addr=Base+Offset2=CFA"+(dw<0?dw:"+"+dw)+"\n";
+										analysis	+= "RA=Addr=CFA"+(dw<0?dw:"+"+dw)+"\n";
 									}
 								}
 							}

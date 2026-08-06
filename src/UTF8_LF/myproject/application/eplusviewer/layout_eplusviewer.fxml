@@ -22,7 +22,8 @@
           <Menu mnemonicParsing="false" text="Help">
             <items>
               <MenuItem fx:id="idReadMe" mnemonicParsing="false" onAction="#onReadMe" text="ReadMe" />
-                  <MenuItem fx:id="idInputKey" mnemonicParsing="false" onAction="#onInputKey" text="InputKey" />
+              <MenuItem fx:id="idInputKey" mnemonicParsing="false" onAction="#onInputKey" text="InputKey" />
+          <!--<MenuItem fx:id="idDarkMode" mnemonicParsing="false" onAction="#onDarkMode" text="DarkMode" />-->
             </items>
           </Menu>
         </menus>
