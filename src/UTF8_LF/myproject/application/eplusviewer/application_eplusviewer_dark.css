@@ -105,6 +105,16 @@
 	-fx-border-width: 0 1 0 0;
 }
 
+.tree-cell .arrow,
+.tree-table-row-cell .arrow {
+	-fx-background-color: #e0e0e0;
+}
+
+.tree-cell:expanded .arrow,
+.tree-table-row-cell:expanded .arrow {
+	-fx-background-color: #e0e0e0;
+}
+
 .eplusviewer-tree-table {
 	-fx-background-color: #505050;
 	-fx-text-fill: #e0e0e0;
