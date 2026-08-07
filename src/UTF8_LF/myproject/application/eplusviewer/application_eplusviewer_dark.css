@@ -52,7 +52,7 @@
 }
 
 .tree-table-view {
-	-fx-background-color: #404040;
+	-fx-background-color: #505050;
 	-fx-text-fill: #e0e0e0;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .eplusviewer-tree-table {
-	-fx-background-color: #404040;
+	-fx-background-color: #505050;
 	-fx-text-fill: #e0e0e0;
 }
 
@@ -210,7 +210,7 @@
 }
 
 .table-view {
-	-fx-background-color: #404040;
+	-fx-background-color: #505050;
 }
 
 .table-view .column-header {
@@ -235,8 +235,7 @@
 }
 
 .table-row-cell:selected,
-.table-row-cell:selected > .bin-table-cell,
-.table-row-cell:selected > .bin-table-space {
+.table-row-cell:selected > .bin-table-cell {
   -fx-background-color: #707070;
 }
 
@@ -254,6 +253,7 @@
 .bin-table-space {
 	-fx-alignment: center;
 	-fx-background-color: #303030;
+	-fx-border-width: 0;
 }
 
 .bin-table-cell {
@@ -278,12 +278,10 @@
 	-fx-background-color: #ccdaff;
 }
 
-.bin-table-space:odd,
 .bin-table-cell:odd {
 	-fx-background-color: #505050;
 }
 
-.bin-table-space:even,
 .bin-table-cell:even {
 	-fx-background-color: #585858;
 }
@@ -315,7 +313,7 @@
 }
 
 .text-area .content {
-	-fx-background-color: #303030;
+	-fx-background-color: #505050;
 	-fx-text-fill: #f2bbbb;
 }
 
