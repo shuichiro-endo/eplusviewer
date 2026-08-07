@@ -1,0 +1,85 @@
+.root {
+	-fx-background-color: #303030;
+}
+
+.label {
+	-fx-text-fill: #e0e0e0;
+}
+
+.scroll-bar {
+	-fx-background-color: #303030;
+}
+
+.scroll-bar .thumb {
+	-fx-background-color: #707070;
+}
+
+.border-pane {
+	-fx-background-color: #303030;
+}
+
+.disasm-toolbar {
+	-fx-background-color: #303030;
+}
+
+.button {
+	-fx-background-color: #404040;
+	-fx-text-fill: #e0e0e0;
+}
+
+.button:hover {
+	-fx-background-color: #707070;
+}
+
+.button:pressed {
+	-fx-background-color: #505050;
+}
+
+.grid-pane {
+	-fx-background-color: #303030;
+}
+
+.radio-button {
+	-fx-background-color: #303030;
+	-fx-text-fill: #e0e0e0;
+}
+
+.radio-button .radio {
+	-fx-background-color: #707070;
+	-fx-mark-color: #e0e0e0;
+}
+
+.radio-button .radio:selected {
+	-fx-background-color: #707070;
+}
+
+.radio-button .radio:armed {
+	-fx-background-color: #707070;
+}
+
+.text-area {
+	-fx-background-color: #303030;
+	-fx-text-fill: #c4dfff;
+}
+
+.text-area .content {
+	-fx-background-color: #505050;
+	-fx-text-fill: #c4dfff;
+}
+
+.text-area .corner {
+	-fx-background-color: #303030;
+}
+
+.disasm-console {
+	-fx-text-fill: #c4dfff;
+}
+
+.text-field {
+	-fx-background-color: #505050;
+	-fx-text-fill: #e0e0e0;
+}
+
+.disasm-textfield {
+	-fx-alignment: center;
+}

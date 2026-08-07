@@ -1560,7 +1560,11 @@ public class ApplicationController implements Initializable {
 				Parent dumproot 	= dumpldr.load();
 				dumpstage.setTitle("Data Dump");
 				Scene dumpscene		= new Scene(dumproot);
-				dumpscene.getStylesheets().add(getClass().getResource("application_dump.css").toExternalForm());
+				if(darkmode==false){
+					dumpscene.getStylesheets().add(getClass().getResource("application_dump.css").toExternalForm());
+				}else{
+					dumpscene.getStylesheets().add(getClass().getResource("application_dump_dark.css").toExternalForm());
+				}
 				dumpstage.setScene(dumpscene);
 				dumpstage.show();
 			}catch(Exception e) {
@@ -1594,7 +1598,11 @@ public class ApplicationController implements Initializable {
 				Parent disasmroot 		= disasmldr.load();
 				disasmstage.setTitle("Disassemble");
 				Scene disasmscene		= new Scene(disasmroot);
-				disasmscene.getStylesheets().add(getClass().getResource("application_disasm.css").toExternalForm());
+				if(darkmode==false){
+					disasmscene.getStylesheets().add(getClass().getResource("application_disasm.css").toExternalForm());
+				}else{
+					disasmscene.getStylesheets().add(getClass().getResource("application_disasm_dark.css").toExternalForm());
+				}
 				disasmstage.setScene(disasmscene);
 				disasmstage.show();
 			}catch(Exception e) {

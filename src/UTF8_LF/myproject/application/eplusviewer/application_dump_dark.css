@@ -1,0 +1,101 @@
+.root {
+	-fx-background-color: #303030;
+}
+
+.label {
+	-fx-text-fill: #e0e0e0;
+}
+
+.border-pane {
+	-fx-background-color: #303030;
+}
+
+.table-view {
+	-fx-background-color: #404040;
+}
+
+.table-view .column-header {
+	-fx-border-color: #a0a0a0;
+	-fx-border-width: 0 1 0 0;
+}
+
+.table-view .filler {
+	-fx-background-color: #303030;
+}
+
+.table-row-cell {
+	-fx-background-color: #404040;
+}
+
+.table-row-cell:odd {
+	-fx-background-color: #505050;
+}
+
+.table-row-cell:even {
+	-fx-background-color: #585858;
+}
+
+.table-row-cell:selected,
+.table-row-cell:selected > .bin-table-cell,
+.table-row-cell:selected > .bin-table-space {
+  -fx-background-color: #707070;
+}
+
+.table-cell {
+	-fx-border-color: #a0a0a0;
+	-fx-border-width: 0 1 0 0;
+}
+
+.dump-toolbar {
+	-fx-background-color: #303030;
+}
+
+.button {
+	-fx-background-color: #404040;
+	-fx-text-fill: #e0e0e0;
+}
+
+.button:hover {
+	-fx-background-color: #707070;
+}
+
+.button:pressed {
+	-fx-background-color: #505050;
+}
+
+.check-box .box {
+	-fx-background-color: #303030;
+	-fx-text-fill: #e0e0e0;
+}
+
+.check-box:selected .mark {
+	-fx-background-color: #e0e0e0;
+}
+
+.check-box:selected .box {
+	-fx-background-color: #707070;
+}
+
+.table-row-cell:selected > .dump-table-cell {
+  -fx-background-color: #707070;
+}
+
+.dump-table-no {
+	-fx-alignment: center;
+	-fx-background-color: #303030;
+	-fx-text-fill: #c4dfff;
+}
+
+.dump-table-cell {
+	-fx-alignment: center;
+	-fx-background-color: #303030;
+	-fx-text-fill: #e0e0e0;
+}
+
+.dump-table-cell:odd {
+	-fx-background-color: #505050;
+}
+
+.dump-table-cell:even {
+	-fx-background-color: #585858;
+}

@@ -23,7 +23,7 @@
             <items>
               <MenuItem fx:id="idReadMe" mnemonicParsing="false" onAction="#onReadMe" text="ReadMe" />
               <MenuItem fx:id="idInputKey" mnemonicParsing="false" onAction="#onInputKey" text="InputKey" />
-          <!--<MenuItem fx:id="idDarkMode" mnemonicParsing="false" onAction="#onDarkMode" text="DarkMode" />-->
+              <MenuItem fx:id="idDarkMode" mnemonicParsing="false" onAction="#onDarkMode" text="DarkMode" />
             </items>
           </Menu>
         </menus>
@@ -88,7 +88,7 @@
             </TableView>
             <VBox prefHeight="200.0" prefWidth="100.0">
                <children>
-                  <ToolBar prefHeight="40.0" prefWidth="200.0">
+                  <ToolBar prefHeight="40.0" prefWidth="200.0" styleClass="eplusviewer-toolbar">
                     <items>
                       <Button fx:id="idRerun" mnemonicParsing="false" onAction="#onRerun" text="Rerun" />
                         <Button fx:id="idDump" mnemonicParsing="false" onAction="#onDump" text="Dump" />

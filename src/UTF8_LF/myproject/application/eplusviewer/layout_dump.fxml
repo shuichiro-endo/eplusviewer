@@ -18,7 +18,7 @@
       </TableView>
    </center>
    <bottom>
-      <ToolBar nodeOrientation="RIGHT_TO_LEFT" prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+      <ToolBar nodeOrientation="RIGHT_TO_LEFT" prefHeight="40.0" prefWidth="200.0" BorderPane.alignment="CENTER" styleClass="dump-toolbar">
         <items>
             <Button fx:id="idDumpCancel" maxHeight="25.0" maxWidth="60.0" minHeight="25.0" minWidth="60.0" mnemonicParsing="false" onAction="#onDumpCancel" prefHeight="25.0" prefWidth="60.0" text="Cancel" />
           <Button fx:id="idDumpOk" maxHeight="25.0" maxWidth="60.0" minHeight="25.0" minWidth="60.0" mnemonicParsing="false" onAction="#onDumpOk" prefHeight="25.0" prefWidth="60.0" text="OK" />

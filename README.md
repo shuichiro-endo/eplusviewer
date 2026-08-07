@@ -38,7 +38,7 @@ java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls
 ## Example
 1. Run
     ```
-    java -Xmx4g -jar "E+Viewer3.0.16.jar"
+    java -Xmx4g -jar "E+Viewer3.0.17.jar"
     ```
 1. Open ELF File([File]-[FileOpen])
 
@@ -62,6 +62,8 @@ java --module-path "C:\Java\javafx-sdk-26.0.1\lib" --add-modules javafx.controls
 ![008.jpg](./image/008.jpg)
 
 ![009.jpg](./image/009.jpg)
+
+![010.jpg](./image/010.jpg)
 
 ## Additional Functions
 
